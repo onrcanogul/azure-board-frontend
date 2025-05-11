@@ -1,6 +1,8 @@
 import styled from "@emotion/styled";
-import { Icon } from "@fluentui/react";
-import { useState } from "react";
+import { Icon, Dropdown } from "@fluentui/react";
+import type { IDropdownOption } from "@fluentui/react";
+import { useState, useEffect } from "react";
+import { useLocation, useSearchParams } from "react-router-dom";
 
 const FilterBar = styled.div`
   background: #232422;
@@ -54,43 +56,21 @@ const Input = styled.input`
   }
 `;
 
-const Dropdown = styled.div`
-  background: #232422;
-  color: #fff;
-  border: 1px solid #333;
-  border-radius: 4px;
-  padding: 6px 12px;
-  font-size: 14px;
-  min-width: 40px;
+const DropdownWrapper = styled.div`
   display: flex;
   align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  position: relative;
-  white-space: nowrap;
-
-  &:hover {
-    border-color: #4fa3ff;
-  }
+  background: #232422;
+  border-radius: 4px;
+  border: 1px solid #333;
+  padding: 0 8px;
+  height: 36px;
+  min-width: 150px;
+  flex-grow: 1;
 
   @media (min-width: 768px) {
-    min-width: 80px;
-    padding: 6px 12px 6px 12px;
-    font-size: 15px;
+    min-width: 200px;
+    flex-grow: 0;
   }
-
-  /* Hide text on mobile, show only icon */
-  span {
-    display: none;
-
-    @media (min-width: 768px) {
-      display: inline;
-    }
-  }
-`;
-
-const DropdownBold = styled(Dropdown)`
-  font-weight: 600;
 `;
 
 const CloseBtn = styled.div`
@@ -131,10 +111,69 @@ const MoreButton = styled.div`
   }
 `;
 
+const typeOptions: IDropdownOption[] = [
+  { key: "all", text: "All Types" },
+  { key: "Task", text: "Task" },
+  { key: "Bug", text: "Bug" },
+  { key: "Feature", text: "Feature" },
+];
+const assignedOptions: IDropdownOption[] = [
+  { key: "all", text: "Anyone" },
+  { key: "onurcan", text: "Onur Can Oğul" },
+  { key: "salih", text: "Muhammed Salih Koç" },
+  { key: "ayse", text: "Ayşe Yılmaz" },
+];
+const stateOptions: IDropdownOption[] = [
+  { key: "all", text: "All States" },
+  { key: "To Do", text: "To Do" },
+  { key: "In Progress", text: "In Progress" },
+  { key: "Done", text: "Done" },
+];
+const appOptions: IDropdownOption[] = [
+  { key: "all", text: "All Apps" },
+  { key: "onurcan", text: "Onurcan Apps" },
+];
+const tagOptions: IDropdownOption[] = [
+  { key: "all", text: "All Tags" },
+  { key: "frontend", text: "Frontend" },
+  { key: "backend", text: "Backend" },
+];
+const unparentedOptions: IDropdownOption[] = [
+  { key: "all", text: "All" },
+  { key: "unparented", text: "Unparented" },
+];
+
 const BoardFilterBar = () => {
   const [showAllFilters, setShowAllFilters] = useState(false);
+  const [sprintOptions, setSprintOptions] = useState<
+    { key: string; text: string }[]
+  >([]);
+  const [selectedSprint, setSelectedSprint] = useState<string>("");
+  const [selectedType, setSelectedType] = useState<string>("all");
+  const [selectedAssigned, setSelectedAssigned] = useState<string>("all");
+  const [selectedState, setSelectedState] = useState<string>("all");
+  const [selectedApp, setSelectedApp] = useState<string>("all");
+  const [selectedTag, setSelectedTag] = useState<string>("all");
+  const [selectedUnparented, setSelectedUnparented] = useState<string>("all");
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
 
-  // Filters to show always (essential)
+  useEffect(() => {
+    const sprints = [
+      { key: "Sprint 1", text: "Sprint 1" },
+      { key: "Sprint 2", text: "Sprint 2" },
+      { key: "Sprint 0", text: "Sprint 0" },
+    ];
+    setSprintOptions(sprints);
+  }, []);
+
+  useEffect(() => {
+    const sprintFromUrl = searchParams.get("sprint");
+    if (sprintFromUrl) {
+      setSelectedSprint(sprintFromUrl);
+    }
+  }, [location.search]);
+
   const essentialFilters = (
     <>
       <InputWrapper>
@@ -144,54 +183,165 @@ const BoardFilterBar = () => {
         />
         <Input placeholder="Filter by keyword" />
       </InputWrapper>
-
-      <Dropdown>
-        <Icon iconName="BulletedList" style={{ fontSize: 16 }} />
-        <span> Types </span>
-        <Icon iconName="ChevronDown" style={{ marginLeft: 4, fontSize: 14 }} />
-      </Dropdown>
+      <Dropdown
+        placeholder="Types"
+        options={typeOptions}
+        selectedKey={selectedType}
+        onChange={(_, o) => setSelectedType(o?.key as string)}
+        styles={{
+          root: { minWidth: 120, marginLeft: 8 },
+          dropdown: {
+            background: "#232422",
+            color: "#fff",
+            border: "1px solid #333",
+          },
+          title: {
+            background: "#232422",
+            color: "#fff",
+            border: "1px solid #333",
+          },
+          caretDownWrapper: { color: "#fff" },
+          dropdownItem: { background: "#232422", color: "#fff" },
+          dropdownItemSelected: { background: "#181a17", color: "#4fa3ff" },
+        }}
+      />
     </>
   );
 
-  // Additional filters
   const additionalFilters = (
     <>
-      <Dropdown>
-        <Icon iconName="Contact" style={{ fontSize: 16, marginRight: 4 }} />
-        <span> Assigned to </span>
-        <Icon iconName="ChevronDown" style={{ marginLeft: 4, fontSize: 14 }} />
-      </Dropdown>
-
-      <Dropdown>
-        <Icon iconName="Flag" style={{ fontSize: 16, marginRight: 4 }} />
-        <span> States </span>
-        <Icon iconName="ChevronDown" style={{ marginLeft: 4, fontSize: 14 }} />
-      </Dropdown>
-
-      <DropdownBold>
-        <Icon iconName="Product" style={{ fontSize: 16, marginRight: 4 }} />
-        <span> Onurcan Apps </span>
-        <Icon iconName="ChevronDown" style={{ marginLeft: 4, fontSize: 14 }} />
-      </DropdownBold>
-
-      <Dropdown>
-        <Icon iconName="Sprint" style={{ fontSize: 16, marginRight: 4 }} />
-        <span> Iteration </span>
-        <Icon iconName="ChevronDown" style={{ marginLeft: 4, fontSize: 14 }} />
-      </Dropdown>
-
-      <Dropdown>
-        <Icon iconName="Tag" style={{ fontSize: 16, marginRight: 4 }} />
-        <span> Tags </span>
-        <Icon iconName="ChevronDown" style={{ marginLeft: 4, fontSize: 14 }} />
-      </Dropdown>
-
-      <DropdownBold>
-        <Icon iconName="WorkItem" style={{ fontSize: 16, marginRight: 4 }} />
-        <span> Unparented </span>
-        <Icon iconName="ChevronDown" style={{ marginLeft: 4, fontSize: 14 }} />
-      </DropdownBold>
-
+      <Dropdown
+        placeholder="Assigned to"
+        options={assignedOptions}
+        selectedKey={selectedAssigned}
+        onChange={(_, o) => setSelectedAssigned(o?.key as string)}
+        styles={{
+          root: { minWidth: 140, marginLeft: 8 },
+          dropdown: {
+            background: "#232422",
+            color: "#fff",
+            border: "1px solid #333",
+          },
+          title: {
+            background: "#232422",
+            color: "#fff",
+            border: "1px solid #333",
+          },
+          caretDownWrapper: { color: "#fff" },
+          dropdownItem: { background: "#232422", color: "#fff" },
+          dropdownItemSelected: { background: "#181a17", color: "#4fa3ff" },
+        }}
+      />
+      <Dropdown
+        placeholder="States"
+        options={stateOptions}
+        selectedKey={selectedState}
+        onChange={(_, o) => setSelectedState(o?.key as string)}
+        styles={{
+          root: { minWidth: 120, marginLeft: 8 },
+          dropdown: {
+            background: "#232422",
+            color: "#fff",
+            border: "1px solid #333",
+          },
+          title: {
+            background: "#232422",
+            color: "#fff",
+            border: "1px solid #333",
+          },
+          caretDownWrapper: { color: "#fff" },
+          dropdownItem: { background: "#232422", color: "#fff" },
+          dropdownItemSelected: { background: "#181a17", color: "#4fa3ff" },
+        }}
+      />
+      <Dropdown
+        placeholder="Onurcan Apps"
+        options={appOptions}
+        selectedKey={selectedApp}
+        onChange={(_, o) => setSelectedApp(o?.key as string)}
+        styles={{
+          root: { minWidth: 140, marginLeft: 8 },
+          dropdown: {
+            background: "#232422",
+            color: "#fff",
+            border: "1px solid #333",
+          },
+          title: {
+            background: "#232422",
+            color: "#fff",
+            border: "1px solid #333",
+          },
+          caretDownWrapper: { color: "#fff" },
+          dropdownItem: { background: "#232422", color: "#fff" },
+          dropdownItemSelected: { background: "#181a17", color: "#4fa3ff" },
+        }}
+      />
+      <Dropdown
+        placeholder="Iteration"
+        options={sprintOptions.map((s) => ({ key: s.key, text: s.text }))}
+        selectedKey={selectedSprint}
+        onChange={(_, o) => setSelectedSprint(o?.key as string)}
+        styles={{
+          root: { minWidth: 140, marginLeft: 8 },
+          dropdown: {
+            background: "#232422",
+            color: "#fff",
+            border: "1px solid #333",
+          },
+          title: {
+            background: "#232422",
+            color: "#fff",
+            border: "1px solid #333",
+          },
+          caretDownWrapper: { color: "#fff" },
+          dropdownItem: { background: "#232422", color: "#fff" },
+          dropdownItemSelected: { background: "#181a17", color: "#4fa3ff" },
+        }}
+      />
+      <Dropdown
+        placeholder="Tags"
+        options={tagOptions}
+        selectedKey={selectedTag}
+        onChange={(_, o) => setSelectedTag(o?.key as string)}
+        styles={{
+          root: { minWidth: 120, marginLeft: 8 },
+          dropdown: {
+            background: "#232422",
+            color: "#fff",
+            border: "1px solid #333",
+          },
+          title: {
+            background: "#232422",
+            color: "#fff",
+            border: "1px solid #333",
+          },
+          caretDownWrapper: { color: "#fff" },
+          dropdownItem: { background: "#232422", color: "#fff" },
+          dropdownItemSelected: { background: "#181a17", color: "#4fa3ff" },
+        }}
+      />
+      <Dropdown
+        placeholder="Unparented"
+        options={unparentedOptions}
+        selectedKey={selectedUnparented}
+        onChange={(_, o) => setSelectedUnparented(o?.key as string)}
+        styles={{
+          root: { minWidth: 120, marginLeft: 8 },
+          dropdown: {
+            background: "#232422",
+            color: "#fff",
+            border: "1px solid #333",
+          },
+          title: {
+            background: "#232422",
+            color: "#fff",
+            border: "1px solid #333",
+          },
+          caretDownWrapper: { color: "#fff" },
+          dropdownItem: { background: "#232422", color: "#fff" },
+          dropdownItemSelected: { background: "#181a17", color: "#4fa3ff" },
+        }}
+      />
       <CloseBtn>
         <Icon iconName="Cancel" />
       </CloseBtn>
@@ -201,13 +351,10 @@ const BoardFilterBar = () => {
   return (
     <FilterBar>
       {essentialFilters}
-
       <MoreButton onClick={() => setShowAllFilters(!showAllFilters)}>
         <Icon iconName={showAllFilters ? "ChevronUp" : "ChevronDown"} />
         <span style={{ marginLeft: 4 }}>Filters</span>
       </MoreButton>
-
-      {/* Show additional filters either on larger screens or when expanded on mobile */}
       {(showAllFilters || window.innerWidth >= 1024) && additionalFilters}
     </FilterBar>
   );

@@ -27,28 +27,39 @@ const WorkItemModal = ({
   if (!item) return null;
 
   // State variables
-  const [title, setTitle] = useState(isNew ? "" : item.title);
-  const [editTitle, setEditTitle] = useState(false);
+  const [description, setDescription] = useState(item.description || "");
+  const [editDescription, setEditDescription] = useState(false);
+  const [functionalDescription, setFunctionalDescription] = useState(
+    item.functionalDescription || ""
+  );
+  const [editFunctionalDescription, setEditFunctionalDescription] =
+    useState(false);
+  const [technicalDescription, setTechnicalDescription] = useState(
+    item.technicalDescription || ""
+  );
+  const [editTechnicalDescription, setEditTechnicalDescription] =
+    useState(false);
+  const [priority, setPriority] = useState(item.priority);
+  const [editPriority, setEditPriority] = useState(false);
+  const [assignedUserId, setAssignedUserId] = useState(
+    item.assignedUserId || ""
+  );
+  const [editAssignedUserId, setEditAssignedUserId] = useState(false);
   const [state, setState] = useState(item.state);
   const [editState, setEditState] = useState(false);
-  const [area, setArea] = useState(isNew ? "" : "OO");
-  const [editArea, setEditArea] = useState(false);
-  const [iteration, setIteration] = useState(isNew ? "" : "OO\\Sprint 1");
-  const [editIteration, setEditIteration] = useState(false);
-  const [description, setDescription] = useState("");
-  const [editDescription, setEditDescription] = useState(false);
-  const [priority, setPriority] = useState(isNew ? 2 : 2);
-  const [editPriority, setEditPriority] = useState(false);
-  const [teknikTasarim, setTeknikTasarim] = useState("");
-  const [editTeknikTasarim, setEditTeknikTasarim] = useState(false);
-  const [fonksiyonelTasarim, setFonksiyonelTasarim] = useState("");
-  const [editFonksiyonelTasarim, setEditFonksiyonelTasarim] = useState(false);
-  const [assignedUser, setAssignedUser] = useState<string>("");
-  const [editAssignedUser, setEditAssignedUser] = useState(false);
-  const [startDate, setStartDate] = useState<string>("");
-  const [editStartDate, setEditStartDate] = useState(false);
-  const [targetDate, setTargetDate] = useState<string>("");
-  const [editTargetDate, setEditTargetDate] = useState(false);
+  const [areaId, setAreaId] = useState(item.areaId || "");
+  const [editAreaId, setEditAreaId] = useState(false);
+  const [sprintId, setSprintId] = useState(item.sprintId || "");
+  const [editSprintId, setEditSprintId] = useState(false);
+  const [featureId, setFeatureId] = useState(item.featureId || "");
+  const [editFeatureId, setEditFeatureId] = useState(false);
+  const [startedDate, setStartedDate] = useState(item.startedDate || "");
+  const [editStartedDate, setEditStartedDate] = useState(false);
+  const [dueDate, setDueDate] = useState(item.dueDate || "");
+  const [editDueDate, setEditDueDate] = useState(false);
+  const [completedDate, setCompletedDate] = useState(item.completedDate || "");
+  const [editCompletedDate, setEditCompletedDate] = useState(false);
+  const [tagIds, setTagIds] = useState(item.tagIds || []);
 
   if (!open) return null;
 
@@ -58,26 +69,26 @@ const WorkItemModal = ({
         <ModalHeader
           item={item}
           onClose={onClose}
-          title={title}
-          setTitle={setTitle}
-          editTitle={editTitle}
-          setEditTitle={setEditTitle}
+          title={description}
+          setTitle={setDescription}
+          editTitle={editDescription}
+          setEditTitle={setEditDescription}
           state={state}
           setState={setState}
           editState={editState}
           setEditState={setEditState}
-          area={area}
-          setArea={setArea}
-          editArea={editArea}
-          setEditArea={setEditArea}
-          iteration={iteration}
-          setIteration={setIteration}
-          editIteration={editIteration}
-          setEditIteration={setEditIteration}
-          assignedUser={assignedUser}
-          setAssignedUser={setAssignedUser}
-          editAssignedUser={editAssignedUser}
-          setEditAssignedUser={setEditAssignedUser}
+          area={areaId}
+          setArea={setAreaId}
+          editArea={editAreaId}
+          setEditArea={setEditAreaId}
+          iteration={sprintId}
+          setIteration={setSprintId}
+          editIteration={editSprintId}
+          setEditIteration={setEditSprintId}
+          assignedUser={assignedUserId}
+          setAssignedUser={setAssignedUserId}
+          editAssignedUser={editAssignedUserId}
+          setEditAssignedUser={setEditAssignedUserId}
         />
 
         <ModalBody>
@@ -86,14 +97,14 @@ const WorkItemModal = ({
             setDescription={setDescription}
             editDescription={editDescription}
             setEditDescription={setEditDescription}
-            teknikTasarim={teknikTasarim}
-            setTeknikTasarim={setTeknikTasarim}
-            editTeknikTasarim={editTeknikTasarim}
-            setEditTeknikTasarim={setEditTeknikTasarim}
-            fonksiyonelTasarim={fonksiyonelTasarim}
-            setFonksiyonelTasarim={setFonksiyonelTasarim}
-            editFonksiyonelTasarim={editFonksiyonelTasarim}
-            setEditFonksiyonelTasarim={setEditFonksiyonelTasarim}
+            teknikTasarim={technicalDescription}
+            setTeknikTasarim={setTechnicalDescription}
+            editTeknikTasarim={editTechnicalDescription}
+            setEditTeknikTasarim={setEditTechnicalDescription}
+            fonksiyonelTasarim={functionalDescription}
+            setFonksiyonelTasarim={setFunctionalDescription}
+            editFonksiyonelTasarim={editFunctionalDescription}
+            setEditFonksiyonelTasarim={setEditFunctionalDescription}
           />
 
           <ModalRight
@@ -101,14 +112,14 @@ const WorkItemModal = ({
             setPriority={setPriority}
             editPriority={editPriority}
             setEditPriority={setEditPriority}
-            startDate={startDate}
-            setStartDate={setStartDate}
-            editStartDate={editStartDate}
-            setEditStartDate={setEditStartDate}
-            targetDate={targetDate}
-            setTargetDate={setTargetDate}
-            editTargetDate={editTargetDate}
-            setEditTargetDate={setEditTargetDate}
+            startDate={startedDate}
+            setStartDate={setStartedDate}
+            editStartDate={editStartedDate}
+            setEditStartDate={setEditStartedDate}
+            targetDate={dueDate}
+            setTargetDate={setDueDate}
+            editTargetDate={editDueDate}
+            setEditTargetDate={setEditDueDate}
           />
         </ModalBody>
 

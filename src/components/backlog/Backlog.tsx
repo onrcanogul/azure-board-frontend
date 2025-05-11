@@ -84,15 +84,17 @@ const ListHeader = styled(Box)`
   }
 `;
 
-const ListRow = styled(Box)<{
+const WorkItemRow = styled.div<{
   isExpandable?: boolean;
   indentLevel?: number;
   isExpanded?: boolean;
 }>`
   display: flex;
-  padding: 12px 16px;
-  border-bottom: 1px solid #333;
   align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  color: #bdbdbd;
+  font-size: 14px;
   cursor: ${(props) => (props.isExpandable ? "pointer" : "default")};
   background: ${(props) => (props.isExpanded ? "#2a2c29" : "#232422")};
   padding-left: ${(props) =>
@@ -100,10 +102,6 @@ const ListRow = styled(Box)<{
 
   &:hover {
     background: #2a2c29;
-  }
-
-  @media (min-width: 768px) {
-    padding-right: 24px;
   }
 `;
 
@@ -442,14 +440,12 @@ const Backlog: React.FC = () => {
       const typeColor = getTypeColor(item.type);
 
       return (
-        <React.Fragment key={item.id}>
-          <ListRow
-            isExpandable={hasChildren}
-            indentLevel={level}
-            isExpanded={isExpanded}
-            onClick={
-              hasChildren ? (e) => toggleItemExpand(item.id, e) : undefined
-            }
+        <div key={item.id}>
+          <WorkItemRow
+            data-expandable={hasChildren}
+            data-indent-level={level}
+            data-expanded={isExpanded}
+            onClick={() => hasChildren && toggleItemExpand(item.id, {})}
           >
             <TypeIndicator itemType={item.type} />
 
@@ -464,7 +460,10 @@ const Backlog: React.FC = () => {
                 {hasChildren && (
                   <StyledIconButton
                     size="small"
-                    onClick={(e) => toggleItemExpand(item.id, e)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleItemExpand(item.id, e);
+                    }}
                     sx={{ mr: 1 }}
                   >
                     {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
@@ -576,11 +575,11 @@ const Backlog: React.FC = () => {
                 </StyledIconButton>
               </Tooltip>
             </Box>
-          </ListRow>
+          </WorkItemRow>
 
           {/* Render children if expanded */}
           {hasChildren && isExpanded && renderItems(item.children, level + 1)}
-        </React.Fragment>
+        </div>
       );
     });
   };

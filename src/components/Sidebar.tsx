@@ -71,7 +71,6 @@ const MenuItem = styled.div<{ active: boolean }>`
 const items = [
   { icon: "Home", label: "Overview", path: "/overview" },
   { icon: "Boards", label: "Boards", path: "/boards" },
-  { icon: "ClipboardList", label: "Work items", path: "/work-items" },
   { icon: "Boards", label: "Backlogs", path: "/backlogs" },
   { icon: "Sprint", label: "Sprints", path: "/sprints" },
 ];

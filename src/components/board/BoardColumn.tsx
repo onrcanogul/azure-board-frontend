@@ -4,13 +4,26 @@ import BoardCard from "./BoardCard";
 import { useDrop } from "react-dnd";
 import { ItemTypes } from "./DragDropTypes";
 import type { DragItem } from "./DragDropTypes";
-import React from "react";
+import React, { useState } from "react";
 
 export interface WorkItem {
-  id: number;
-  title: string;
+  id: string; // UUID
+  sprintId: string; // UUID
+  areaId: string; // UUID
+  featureId: string; // UUID
+  assignedUserId: string; // UUID
+  description: string;
+  functionalDescription: string;
+  technicalDescription: string;
+  priority: number;
   state: string;
-  type: string;
+  storyPoint: number;
+  businessValue: number;
+  dueDate: string; // ISO string
+  startedDate: string; // ISO string
+  completedDate: string; // ISO string
+  isDeleted: boolean;
+  tagIds: string[];
 }
 
 interface BoardColumnProps {
@@ -18,7 +31,7 @@ interface BoardColumnProps {
   items: WorkItem[];
   onAddItem?: () => void;
   onCardClick?: (item: WorkItem) => void;
-  onMoveCard?: (id: number, targetState: string) => void;
+  onMoveCard?: (id: string, targetState: string) => void;
 }
 
 interface ColumnProps {

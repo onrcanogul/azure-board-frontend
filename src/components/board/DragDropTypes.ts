@@ -3,7 +3,7 @@ export const ItemTypes = {
 };
 
 export interface DragItem {
-  id: number;
+  id: string;
   type: string;
   originalState: string;
 }
