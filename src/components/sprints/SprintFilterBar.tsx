@@ -6,7 +6,7 @@ const FilterContainer = styled.div`
   display: flex;
   gap: 16px;
   padding: 16px;
-  background: #232422;
+  background: #1e1f1c;
   border-radius: 8px;
   flex-wrap: wrap;
   width: 98%;
@@ -42,7 +42,8 @@ const SprintFilterBar = () => {
           placeholder="Search sprints..."
           styles={{
             root: { width: "100%" },
-            field: { backgroundColor: "#2d2e2b", color: "#fff" },
+            field: { backgroundColor: "#1e1f1c", color: "#ffffff" },
+            fieldGroup: { borderColor: "#323232" },
           }}
         />
       </FilterField>
@@ -52,7 +53,9 @@ const SprintFilterBar = () => {
           options={statusOptions}
           styles={{
             root: { width: "100%" },
-            dropdown: { backgroundColor: "#2d2e2b", color: "#fff" },
+            dropdown: { backgroundColor: "#1e1f1c", color: "#ffffff" },
+            title: { backgroundColor: "#1e1f1c", color: "#ffffff" },
+            caretDownWrapper: { color: "#ffffff" },
           }}
         />
       </FilterField>

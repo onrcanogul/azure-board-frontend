@@ -15,6 +15,7 @@ const BoardWrapper = styled.div`
   min-height: 100%;
   width: 100%;
   box-sizing: border-box;
+  flex: 1;
 `;
 
 const BoardContainer = styled.div`
@@ -25,24 +26,93 @@ const BoardContainer = styled.div`
   width: 100%;
   box-sizing: border-box;
   overflow-x: auto;
+  min-width: 0; /* Prevents flex items from overflowing */
+  flex: 1;
 
   /* Mobile: Stack columns vertically */
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
 
   /* Tablet: 2 columns */
   @media (min-width: 768px) {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     padding: 24px;
     gap: 20px;
   }
 
   /* Desktop: 3 columns */
   @media (min-width: 1024px) {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     padding: 32px;
     gap: 24px;
   }
 `;
+
+// Demo data
+const demoWorkItems = [
+  {
+    id: "1",
+    title: "Implement login page",
+    state: "To Do",
+    type: "Task",
+    sprintId: "",
+    areaId: "",
+    featureId: "",
+    assignedUserId: "",
+    description: "",
+    functionalDescription: "",
+    technicalDescription: "",
+    priority: 0,
+    storyPoint: 0,
+    businessValue: 0,
+    dueDate: "",
+    startedDate: "",
+    completedDate: "",
+    isDeleted: false,
+    tagIds: [],
+  },
+  {
+    id: "2",
+    title: "Design database schema",
+    state: "In Progress",
+    type: "Task",
+    sprintId: "",
+    areaId: "",
+    featureId: "",
+    assignedUserId: "",
+    description: "",
+    functionalDescription: "",
+    technicalDescription: "",
+    priority: 0,
+    storyPoint: 0,
+    businessValue: 0,
+    dueDate: "",
+    startedDate: "",
+    completedDate: "",
+    isDeleted: false,
+    tagIds: [],
+  },
+  {
+    id: "3",
+    title: "Write API documentation",
+    state: "Done",
+    type: "Task",
+    sprintId: "",
+    areaId: "",
+    featureId: "",
+    assignedUserId: "",
+    description: "",
+    functionalDescription: "",
+    technicalDescription: "",
+    priority: 0,
+    storyPoint: 0,
+    businessValue: 0,
+    dueDate: "",
+    startedDate: "",
+    completedDate: "",
+    isDeleted: false,
+    tagIds: [],
+  },
+];
 
 const columns = [
   { key: "To Do", label: "To Do" },
@@ -51,23 +121,29 @@ const columns = [
 ];
 
 const emptyWorkItem = (state: string): WorkItem => ({
-  id: Date.now(),
+  id: Date.now().toString(),
   title: "",
   state,
   type: "Task",
+  sprintId: "",
+  areaId: "",
+  featureId: "",
+  assignedUserId: "",
+  description: "",
+  functionalDescription: "",
+  technicalDescription: "",
+  priority: 0,
+  storyPoint: 0,
+  businessValue: 0,
+  dueDate: "",
+  startedDate: "",
+  completedDate: "",
+  isDeleted: false,
+  tagIds: [],
 });
 
 const Board = () => {
-  const [workItems, setWorkItems] = useState<WorkItem[]>([
-    { id: 1, title: "Implement login page", state: "To Do", type: "Task" },
-    {
-      id: 2,
-      title: "Design database schema",
-      state: "In Progress",
-      type: "Task",
-    },
-    { id: 3, title: "Write API documentation", state: "Done", type: "Task" },
-  ]);
+  const [workItems, setWorkItems] = useState<WorkItem[]>(demoWorkItems);
   const [selectedItem, setSelectedItem] = useState<WorkItem | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [isNew, setIsNew] = useState(false);
@@ -90,7 +166,7 @@ const Board = () => {
     setIsNew(true);
   };
 
-  const handleMoveCard = (id: number, targetState: string) => {
+  const handleMoveCard = (id: string, targetState: string) => {
     console.log(`Moving card ${id} to ${targetState}`);
     setWorkItems((prevItems) =>
       prevItems.map((item) =>
@@ -116,12 +192,14 @@ const Board = () => {
             />
           ))}
         </BoardContainer>
-        <WorkItemModal
-          item={selectedItem!}
-          open={modalOpen && !!selectedItem}
-          onClose={handleModalClose}
-          isNew={isNew}
-        />
+        {selectedItem && (
+          <WorkItemModal
+            item={selectedItem}
+            open={modalOpen}
+            onClose={handleModalClose}
+            isNew={isNew}
+          />
+        )}
       </BoardWrapper>
     </DndProvider>
   );

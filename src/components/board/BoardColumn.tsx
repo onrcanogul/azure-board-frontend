@@ -44,10 +44,12 @@ const ColumnContainer = styled.div`
   min-height: 150px;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
 `;
 
 const ColumnDiv = styled.div<ColumnProps>`
   min-width: 0;
+  width: 100%;
   background: ${(props) =>
     props.isOver && props.canDrop ? "#1e1f1c" : "#232422"};
   border-radius: 6px;
@@ -61,6 +63,7 @@ const ColumnDiv = styled.div<ColumnProps>`
       : "1px solid transparent"};
   transition: background-color 0.2s, border 0.2s;
   overflow: hidden; /* Ensures content doesn't expand beyond borders */
+  box-sizing: border-box;
 `;
 
 const ColumnHeader = styled.div`
@@ -69,6 +72,8 @@ const ColumnHeader = styled.div`
   justify-content: space-between;
   padding: 12px;
   border-bottom: 1px solid #333;
+  width: 100%;
+  box-sizing: border-box;
 
   @media (min-width: 768px) {
     padding: 16px;
@@ -94,6 +99,8 @@ const CardList = styled.div`
   padding: 0 12px;
   overflow-y: auto;
   flex: 1;
+  width: 100%;
+  box-sizing: border-box;
 
   @media (min-width: 768px) {
     padding: 0 16px;
@@ -106,6 +113,8 @@ const NewItemButton = styled(DefaultButton)`
   color: #bdbdbd;
   background: transparent;
   border: none;
+  width: calc(100% - 24px);
+  box-sizing: border-box;
 
   &:hover {
     background: #232422;
@@ -114,6 +123,7 @@ const NewItemButton = styled(DefaultButton)`
 
   @media (min-width: 768px) {
     margin: 12px 16px 8px 16px;
+    width: calc(100% - 32px);
   }
 `;
 

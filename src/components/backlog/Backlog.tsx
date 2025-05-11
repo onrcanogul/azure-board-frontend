@@ -88,6 +88,7 @@ const WorkItemRow = styled.div<{
   isExpandable?: boolean;
   indentLevel?: number;
   isExpanded?: boolean;
+  itemType?: WorkItemType;
 }>`
   display: flex;
   align-items: center;
@@ -98,11 +99,49 @@ const WorkItemRow = styled.div<{
   cursor: ${(props) => (props.isExpandable ? "pointer" : "default")};
   background: ${(props) => (props.isExpanded ? "#2a2c29" : "#232422")};
   padding-left: ${(props) =>
-    props.indentLevel ? `${props.indentLevel * 32 + 16}px` : "16px"};
+    props.indentLevel ? `${props.indentLevel * 24 + 16}px` : "16px"};
+  position: relative;
 
   &:hover {
     background: #2a2c29;
   }
+
+  /* Connection lines for hierarchy visualization */
+  ${(props) =>
+    props.indentLevel && props.indentLevel > 0
+      ? `
+    /* Vertical line */
+    &::before {
+      content: "";
+      position: absolute;
+      left: ${(props.indentLevel - 1) * 24 + 28}px;
+      top: 0;
+      bottom: 0;
+      width: 1px;
+      background-color: #444;
+    }
+    
+    /* Horizontal connector */
+    &::after {
+      content: "";
+      position: absolute;
+      left: ${(props.indentLevel - 1) * 24 + 28}px;
+      top: 50%;
+      width: 16px;
+      height: 1px;
+      background-color: #444;
+    }
+    
+    /* Adjust vertical line for last child */
+    &:last-child::before {
+      height: 50%;
+    }
+    
+    &:hover::before, &:hover::after {
+      background-color: #666;
+    }
+  `
+      : ""}
 `;
 
 // Rename PriorityIndicator to TypeIndicator and update it to display color based on item type
@@ -442,10 +481,11 @@ const Backlog: React.FC = () => {
       return (
         <div key={item.id}>
           <WorkItemRow
-            data-expandable={hasChildren}
-            data-indent-level={level}
-            data-expanded={isExpanded}
-            onClick={() => hasChildren && toggleItemExpand(item.id, {})}
+            isExpandable={hasChildren}
+            indentLevel={level}
+            isExpanded={isExpanded}
+            itemType={item.type}
+            onClick={(e) => hasChildren && toggleItemExpand(item.id, e)}
           >
             <TypeIndicator itemType={item.type} />
 

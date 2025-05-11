@@ -29,6 +29,11 @@ const LayoutContainer = styled.div`
   min-height: 100vh;
   background: #181a17;
   overflow: hidden;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
 
   @media (max-width: ${MOBILE_BREAKPOINT}px) {
     grid-template-columns: 1fr;
@@ -43,6 +48,8 @@ const SidebarWrapper = styled.div<StyledProps>`
   width: ${SIDEBAR_WIDTH}px;
   z-index: 100;
   transition: transform 0.3s ease;
+  height: 100vh;
+  overflow-y: auto;
 
   @media (max-width: ${MOBILE_BREAKPOINT}px) {
     position: fixed;
@@ -62,6 +69,7 @@ const HeaderArea = styled.div`
   padding: 0 16px;
   height: 50px;
   background: rgba(0, 0, 0, 0.3);
+  width: 100%;
 
   @media (max-width: ${MOBILE_BREAKPOINT}px) {
     padding-left: 60px; /* Leave space for menu button */
@@ -74,6 +82,10 @@ const ContentWrapper = styled.div`
   overflow-x: hidden;
   display: flex;
   flex-direction: column;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  height: calc(100vh - 50px);
 `;
 
 const MobileMenuButton = styled.button`

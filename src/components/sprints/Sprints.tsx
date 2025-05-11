@@ -1,3 +1,4 @@
+import { useState, useCallback } from "react";
 import styled from "@emotion/styled";
 import SprintHeader from "./SprintHeader";
 import SprintList from "./SprintList";
@@ -13,11 +14,18 @@ const SprintsContainer = styled.div`
 `;
 
 const Sprints = () => {
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  const handleSprintCreated = useCallback(() => {
+    // Increment the refresh trigger to cause the sprint list to reload
+    setRefreshTrigger((prev) => prev + 1);
+  }, []);
+
   return (
     <SprintsContainer>
-      <SprintHeader />
+      <SprintHeader onSprintCreated={handleSprintCreated} />
       <SprintFilterBar />
-      <SprintList />
+      <SprintList key={refreshTrigger} />
     </SprintsContainer>
   );
 };

@@ -36,14 +36,14 @@ interface SprintCardProps {
 }
 
 const CardContainer = styled.div`
-  background: #232422;
+  background: #1e1f1c;
   border-radius: 8px;
   padding: 20px;
   transition: all 0.2s ease;
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   }
 
   @media (max-width: 768px) {
@@ -68,7 +68,7 @@ const SprintName = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #fff;
+  color: #ffffff;
   font-size: 18px;
   font-weight: 500;
 
@@ -127,7 +127,7 @@ const CardContent = styled.div`
 const DateInfo = styled.div`
   display: flex;
   gap: 24px;
-  color: #bdbdbd;
+  color: #cccccc;
   font-size: 14px;
   flex-wrap: wrap;
 
@@ -153,7 +153,7 @@ const WorkItemRow = styled.div`
   align-items: center;
   gap: 12px;
   padding: 8px 0;
-  color: #bdbdbd;
+  color: #cccccc;
   font-size: 14px;
   flex-wrap: wrap;
 
