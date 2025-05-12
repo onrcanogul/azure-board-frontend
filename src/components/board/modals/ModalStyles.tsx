@@ -21,12 +21,14 @@ export const Modal = styled.div`
   border-radius: 6px;
   margin: 32px 0 32px 0;
   width: 1100px;
-  max-width: 98vw;
-  min-height: 650px;
+  max-width: 90vw;
+  min-height: 700px;
+  max-height: 85vh;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
   position: relative;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 `;
 
 export const ModalHeader = styled.div`
@@ -145,20 +147,30 @@ export const Tab = styled.div<{ active?: boolean }>`
 
 export const ModalBody = styled.div`
   display: flex;
-  gap: 24px;
-  padding: 24px 28px 24px 28px;
+  gap: 20px;
+  padding: 24px 24px 80px 24px;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
 `;
 
 export const Left = styled.div`
-  flex: 2;
+  flex: 3;
+  max-width: 65%;
+  min-width: 0;
+  overflow-x: hidden;
 `;
 
 export const Right = styled.div`
   flex: 1;
+  max-width: 30%;
+  min-width: 180px;
 `;
 
 export const Section = styled.div`
-  margin-bottom: 18px;
+  margin-bottom: 24px;
+  width: 100%;
+  overflow: hidden;
 `;
 
 export const SectionTitle = styled.div`
@@ -176,6 +188,10 @@ export const SectionBox = styled.div`
   min-height: 36px;
   border: 1px solid #232422;
   cursor: pointer;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  width: 100%;
+  overflow: hidden;
 `;
 
 export const SectionTextarea = styled.textarea`
@@ -183,11 +199,16 @@ export const SectionTextarea = styled.textarea`
   color: #fff;
   border: 1px solid #333;
   border-radius: 3px;
-  padding: 8px;
+  padding: 10px 12px;
   font-size: 14px;
   width: 100%;
-  min-height: 60px;
+  min-height: 100px;
+  max-height: 300px;
   resize: vertical;
+  font-family: inherit;
+  overflow-y: auto;
+  overflow-x: hidden;
+  word-wrap: break-word;
 `;
 
 export const InfoRow = styled.div`
@@ -275,9 +296,10 @@ export const ModalFooter = styled.div`
   right: 0;
   bottom: 0;
   padding: 18px 32px;
-  background: transparent;
+  background: #181a17;
   z-index: 3;
   display: flex;
   justify-content: flex-end;
   width: 100%;
+  border-top: 1px solid #333;
 `;

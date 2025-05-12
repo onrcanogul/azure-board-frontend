@@ -46,6 +46,11 @@ const CardTitle = styled.div`
   word-break: break-word;
   width: 100%;
   line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
 
   @media (min-width: 768px) {
     font-size: 16px;
@@ -92,39 +97,59 @@ const CardState = styled.span`
   font-weight: 500;
 `;
 
+const PriorityBadge = styled.span<{ priority: number }>`
+  color: ${(props) => {
+    if (props.priority >= 3) return "#ff5252";
+    if (props.priority === 2) return "#ffb900";
+    if (props.priority === 1) return "#0078d4";
+    return "#8a8a8a";
+  }};
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+`;
+
 interface BoardCardProps {
   item: WorkItem;
   onClick?: () => void;
 }
 
 const BoardCard: React.FC<BoardCardProps> = ({ item, onClick }) => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [{ isDragging }, dragRef] = useDrag<
-    DragItem,
-    unknown,
-    { isDragging: boolean }
-  >(() => ({
-    type: ItemTypes.CARD,
-    item: {
-      id: item.id,
+  const [{ isDragging }, dragRef] = useDrag(
+    () => ({
       type: ItemTypes.CARD,
-      originalState: item.state,
-    },
-    collect: (monitor) => ({
-      isDragging: !!monitor.isDragging(),
+      item: (): DragItem => ({
+        id: item.id,
+        type: ItemTypes.CARD,
+        originalState: item.state,
+      }),
+      collect: (monitor) => ({
+        isDragging: !!monitor.isDragging(),
+      }),
+      end: (draggedItem, monitor) => {
+        // If item was dropped outside of a valid drop target
+        if (!monitor.didDrop() && draggedItem) {
+          console.log("Item was not dropped in a valid drop target");
+        }
+      },
     }),
-  }));
+    [item.id, item.state]
+  );
+
+  // Truncate ID to first 6 characters for better display
+  const shortenedId = item.id.substring(0, 6);
 
   return (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    <div ref={dragRef as any}>
+    <div ref={dragRef as any} id={`card-${item.id}`}>
       <CardDiv onClick={onClick} isDragging={isDragging}>
         <CardTitle>{item.description}</CardTitle>
         <CardMeta>
-          <CardId>#{item.id}</CardId>
-          <CardState>{item.state}</CardState>
-          <span>SP: {item.storyPoint}</span>
-          <span>BV: {item.businessValue}</span>
+          <CardId>#{shortenedId}</CardId>
+          <PriorityBadge priority={item.priority}>
+            P{item.priority || 0}
+          </PriorityBadge>
+          {item.storyPoint > 0 && <span>SP: {item.storyPoint}</span>}
         </CardMeta>
       </CardDiv>
     </div>

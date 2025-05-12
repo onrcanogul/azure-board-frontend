@@ -143,13 +143,22 @@ const unparentedOptions: IDropdownOption[] = [
   { key: "unparented", text: "Unparented" },
 ];
 
-const BoardFilterBar = () => {
+interface BoardFilterBarProps {
+  selectedType?: string;
+  onTypeChange?: (type: string) => void;
+  workItemTypes?: string[];
+}
+
+const BoardFilterBar = ({
+  selectedType = "all",
+  onTypeChange = () => {},
+  workItemTypes = ["PBI", "Bug", "Feature", "Epic"],
+}: BoardFilterBarProps) => {
   const [showAllFilters, setShowAllFilters] = useState(false);
   const [sprintOptions, setSprintOptions] = useState<
     { key: string; text: string }[]
   >([]);
   const [selectedSprint, setSelectedSprint] = useState<string>("");
-  const [selectedType, setSelectedType] = useState<string>("all");
   const [selectedAssigned, setSelectedAssigned] = useState<string>("all");
   const [selectedState, setSelectedState] = useState<string>("all");
   const [selectedApp, setSelectedApp] = useState<string>("all");
@@ -157,6 +166,11 @@ const BoardFilterBar = () => {
   const [selectedUnparented, setSelectedUnparented] = useState<string>("all");
   const location = useLocation();
   const [searchParams] = useSearchParams();
+
+  // Convert workItemTypes to dropdown options
+  const workItemTypeOptions: IDropdownOption[] = [
+    ...workItemTypes.map((type) => ({ key: type, text: type })),
+  ];
 
   useEffect(() => {
     const sprints = [
@@ -174,6 +188,15 @@ const BoardFilterBar = () => {
     }
   }, [location.search]);
 
+  const handleTypeChange = (
+    _: React.FormEvent<HTMLDivElement>,
+    option?: IDropdownOption
+  ) => {
+    if (option && onTypeChange) {
+      onTypeChange(option.key as string);
+    }
+  };
+
   const essentialFilters = (
     <>
       <InputWrapper>
@@ -184,10 +207,10 @@ const BoardFilterBar = () => {
         <Input placeholder="Filter by keyword" />
       </InputWrapper>
       <Dropdown
-        placeholder="Types"
-        options={typeOptions}
+        placeholder="Work Item Type"
+        options={workItemTypeOptions}
         selectedKey={selectedType}
-        onChange={(_, o) => setSelectedType(o?.key as string)}
+        onChange={handleTypeChange}
         styles={{
           root: { minWidth: 120, marginLeft: 8 },
           dropdown: {

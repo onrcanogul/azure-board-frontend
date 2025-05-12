@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import {
   Left,
   Section,
@@ -12,8 +13,8 @@ import {
 interface ModalLeftProps {
   description: string;
   setDescription: (description: string) => void;
-  editDescription: boolean;
-  setEditDescription: (edit: boolean) => void;
+  editDescription?: boolean;
+  setEditDescription?: (edit: boolean) => void;
   teknikTasarim: string;
   setTeknikTasarim: (tasarim: string) => void;
   editTeknikTasarim: boolean;
@@ -27,7 +28,7 @@ interface ModalLeftProps {
 const ModalLeft = ({
   description,
   setDescription,
-  editDescription,
+  editDescription: editDescriptionProp,
   setEditDescription,
   teknikTasarim,
   setTeknikTasarim,
@@ -38,19 +39,87 @@ const ModalLeft = ({
   editFonksiyonelTasarim,
   setEditFonksiyonelTasarim,
 }: ModalLeftProps) => {
+  const [isEditingDescription, setIsEditingDescription] = useState(false);
+  const [localDescription, setLocalDescription] = useState(description);
+
+  useEffect(() => {
+    setLocalDescription(description);
+  }, [description]);
+
+  const handleDescriptionClick = () => {
+    setIsEditingDescription(true);
+  };
+
+  const handleDescriptionChange = (
+    e: React.ChangeEvent<HTMLTextAreaElement>
+  ) => {
+    setLocalDescription(e.target.value);
+  };
+
+  const handleDescriptionBlur = () => {
+    setDescription(localDescription);
+    setIsEditingDescription(false);
+  };
+
+  const handleDescriptionKeyDown = (
+    e: React.KeyboardEvent<HTMLTextAreaElement>
+  ) => {
+    if (e.key === "Escape") {
+      setIsEditingDescription(false);
+      setLocalDescription(description);
+    } else if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      setDescription(localDescription);
+      setIsEditingDescription(false);
+    }
+  };
+
+  const containerStyle = {
+    width: "100%",
+    maxWidth: "100%",
+    overflow: "hidden",
+  };
+
+  const textareaStyle = {
+    border: "1px solid #4fa3ff",
+    minHeight: "80px",
+    maxHeight: "150px",
+    padding: "8px 10px",
+    fontSize: "14px",
+    width: "100%",
+    overflow: "auto",
+    wordWrap: "break-word" as const,
+  };
+
+  const boxStyle = {
+    cursor: "pointer" as const,
+    border: "1px solid #333",
+    transition: "all 0.2s ease",
+    minHeight: "60px",
+    maxHeight: "120px",
+    padding: "8px 10px",
+    fontSize: "14px",
+    width: "100%",
+    overflow: "auto",
+    wordWrap: "break-word" as const,
+  };
+
   return (
-    <Left>
+    <Left style={containerStyle}>
       <Section>
         <SectionTitle>Description</SectionTitle>
-        {editDescription ? (
+        {isEditingDescription ? (
           <SectionTextarea
-            value={description}
+            value={localDescription}
             autoFocus
-            onChange={(e) => setDescription(e.target.value)}
-            onBlur={() => setEditDescription(false)}
+            onChange={handleDescriptionChange}
+            onBlur={handleDescriptionBlur}
+            onKeyDown={handleDescriptionKeyDown}
+            style={textareaStyle}
+            placeholder="Enter a description..."
           />
         ) : (
-          <SectionBox onClick={() => setEditDescription(true)}>
+          <SectionBox onClick={handleDescriptionClick} style={boxStyle}>
             {description || "Click to add Description."}
           </SectionBox>
         )}
@@ -63,9 +132,13 @@ const ModalLeft = ({
             autoFocus
             onChange={(e) => setTeknikTasarim(e.target.value)}
             onBlur={() => setEditTeknikTasarim(false)}
+            style={textareaStyle}
           />
         ) : (
-          <SectionBox onClick={() => setEditTeknikTasarim(true)}>
+          <SectionBox
+            onClick={() => setEditTeknikTasarim(true)}
+            style={boxStyle}
+          >
             {teknikTasarim || "Teknik tasarım ekleyin..."}
           </SectionBox>
         )}
@@ -78,9 +151,13 @@ const ModalLeft = ({
             autoFocus
             onChange={(e) => setFonksiyonelTasarim(e.target.value)}
             onBlur={() => setEditFonksiyonelTasarim(false)}
+            style={textareaStyle}
           />
         ) : (
-          <SectionBox onClick={() => setEditFonksiyonelTasarim(true)}>
+          <SectionBox
+            onClick={() => setEditFonksiyonelTasarim(true)}
+            style={boxStyle}
+          >
             {fonksiyonelTasarim || "Fonksiyonel tasarım ekleyin..."}
           </SectionBox>
         )}

@@ -4,9 +4,11 @@ import BoardFilterBar from "./board/BoardFilterBar";
 import BoardColumn from "./board/BoardColumn";
 import WorkItemModal from "./board/WorkItemModal";
 import type { WorkItem } from "./board/BoardColumn";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
+import workItemService from "../services/workItemService";
+import { v4 as uuidv4 } from "uuid";
 
 const BoardWrapper = styled.div`
   display: flex;
@@ -47,73 +49,6 @@ const BoardContainer = styled.div`
   }
 `;
 
-// Demo data
-const demoWorkItems = [
-  {
-    id: "1",
-    title: "Implement login page",
-    state: "To Do",
-    type: "Task",
-    sprintId: "",
-    areaId: "",
-    featureId: "",
-    assignedUserId: "",
-    description: "",
-    functionalDescription: "",
-    technicalDescription: "",
-    priority: 0,
-    storyPoint: 0,
-    businessValue: 0,
-    dueDate: "",
-    startedDate: "",
-    completedDate: "",
-    isDeleted: false,
-    tagIds: [],
-  },
-  {
-    id: "2",
-    title: "Design database schema",
-    state: "In Progress",
-    type: "Task",
-    sprintId: "",
-    areaId: "",
-    featureId: "",
-    assignedUserId: "",
-    description: "",
-    functionalDescription: "",
-    technicalDescription: "",
-    priority: 0,
-    storyPoint: 0,
-    businessValue: 0,
-    dueDate: "",
-    startedDate: "",
-    completedDate: "",
-    isDeleted: false,
-    tagIds: [],
-  },
-  {
-    id: "3",
-    title: "Write API documentation",
-    state: "Done",
-    type: "Task",
-    sprintId: "",
-    areaId: "",
-    featureId: "",
-    assignedUserId: "",
-    description: "",
-    functionalDescription: "",
-    technicalDescription: "",
-    priority: 0,
-    storyPoint: 0,
-    businessValue: 0,
-    dueDate: "",
-    startedDate: "",
-    completedDate: "",
-    isDeleted: false,
-    tagIds: [],
-  },
-];
-
 const columns = [
   { key: "To Do", label: "To Do" },
   { key: "In Progress", label: "In Progress" },
@@ -121,18 +56,16 @@ const columns = [
 ];
 
 const emptyWorkItem = (state: string): WorkItem => ({
-  id: Date.now().toString(),
-  title: "",
-  state,
-  type: "Task",
+  id: uuidv4(),
   sprintId: "",
   areaId: "",
   featureId: "",
   assignedUserId: "",
-  description: "",
+  description: "New Work Item",
   functionalDescription: "",
   technicalDescription: "",
   priority: 0,
+  state,
   storyPoint: 0,
   businessValue: 0,
   dueDate: "",
@@ -143,10 +76,39 @@ const emptyWorkItem = (state: string): WorkItem => ({
 });
 
 const Board = () => {
-  const [workItems, setWorkItems] = useState<WorkItem[]>(demoWorkItems);
+  const [workItems, setWorkItems] = useState<WorkItem[]>([]);
   const [selectedItem, setSelectedItem] = useState<WorkItem | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [isNew, setIsNew] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadWorkItems = useCallback(async () => {
+    try {
+      setError(null);
+      const items = await workItemService.getAll();
+      setWorkItems(items);
+    } catch (err) {
+      console.error("Error loading work items:", err);
+      setError("Failed to load work items. Please refresh the page.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Load work items from service
+  useEffect(() => {
+    loadWorkItems();
+
+    // Subscribe to changes in the work item service
+    const unsubscribe = workItemService.subscribe(() => {
+      loadWorkItems();
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [loadWorkItems]);
 
   const handleCardClick = (item: WorkItem) => {
     setSelectedItem(item);
@@ -166,38 +128,108 @@ const Board = () => {
     setIsNew(true);
   };
 
-  const handleMoveCard = (id: string, targetState: string) => {
-    console.log(`Moving card ${id} to ${targetState}`);
-    setWorkItems((prevItems) =>
-      prevItems.map((item) =>
-        item.id === id ? { ...item, state: targetState } : item
-      )
-    );
+  const handleMoveCard = useCallback(
+    async (id: string, targetState: string) => {
+      try {
+        // Find the item to move
+        const itemToMove = workItems.find((item) => item.id === id);
+        if (!itemToMove) {
+          console.error(`Item with id ${id} not found`);
+          return;
+        }
+
+        // Skip if the item is already in the target state
+        if (itemToMove.state === targetState) {
+          console.log(`Item is already in ${targetState} state`);
+          return;
+        }
+
+        // Update state locally first for responsiveness
+        setWorkItems((prevItems) =>
+          prevItems.map((item) =>
+            item.id === id ? { ...item, state: targetState } : item
+          )
+        );
+
+        // Update in the service with retry logic
+        try {
+          const updatedItem = { ...itemToMove, state: targetState };
+          await workItemService.update(updatedItem);
+          console.log(`Card ${id} moved to ${targetState} successfully`);
+        } catch (updateError) {
+          console.error(`Error updating item ${id}:`, updateError);
+          // The subscription will reload items if update fails
+        }
+      } catch (error) {
+        console.error(`Error moving card ${id} to ${targetState}:`, error);
+        setError("Failed to move card. Please try again.");
+      }
+    },
+    [workItems]
+  );
+
+  const handleSaveWorkItem = async (updatedItem: WorkItem) => {
+    try {
+      setError(null);
+      if (isNew) {
+        // Create a new work item
+        await workItemService.create(updatedItem);
+      } else {
+        // Update existing work item
+        await workItemService.update(updatedItem);
+      }
+      // No need to update state manually, subscription will handle it
+    } catch (error) {
+      console.error("Error saving work item:", error);
+      setError("Failed to save work item. Please try again.");
+      throw error; // Re-throw to be handled by the modal
+    }
   };
+
+  if (error) {
+    return (
+      <div style={{ color: "red", padding: "20px", textAlign: "center" }}>
+        {error}
+        <button
+          onClick={loadWorkItems}
+          style={{ marginLeft: "10px", padding: "5px 10px" }}
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
     <DndProvider backend={HTML5Backend}>
       <BoardWrapper>
         <BoardHeader />
         <BoardFilterBar />
-        <BoardContainer>
-          {columns.map((column) => (
-            <BoardColumn
-              key={column.key}
-              title={column.key}
-              items={workItems.filter((item) => item.state === column.key)}
-              onCardClick={handleCardClick}
-              onAddItem={() => handleNewItem(column.key)}
-              onMoveCard={handleMoveCard}
-            />
-          ))}
-        </BoardContainer>
+        {isLoading ? (
+          <div style={{ padding: "20px", textAlign: "center" }}>
+            Loading work items...
+          </div>
+        ) : (
+          <BoardContainer>
+            {columns.map((column) => (
+              <BoardColumn
+                key={column.key}
+                title={column.key}
+                items={workItems.filter((item) => item.state === column.key)}
+                onCardClick={handleCardClick}
+                onAddItem={() => handleNewItem(column.key)}
+                onMoveCard={handleMoveCard}
+              />
+            ))}
+          </BoardContainer>
+        )}
         {selectedItem && (
           <WorkItemModal
             item={selectedItem}
             open={modalOpen}
             onClose={handleModalClose}
             isNew={isNew}
+            onSave={handleSaveWorkItem}
           />
         )}
       </BoardWrapper>

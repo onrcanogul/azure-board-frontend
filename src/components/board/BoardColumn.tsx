@@ -4,7 +4,7 @@ import BoardCard from "./BoardCard";
 import { useDrop } from "react-dnd";
 import { ItemTypes } from "./DragDropTypes";
 import type { DragItem } from "./DragDropTypes";
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 
 export interface WorkItem {
   id: string; // UUID
@@ -134,18 +134,37 @@ const BoardColumn: React.FC<BoardColumnProps> = ({
   onCardClick,
   onMoveCard,
 }) => {
-  const [{ isOver, canDrop }, dropRef] = useDrop(() => ({
-    accept: ItemTypes.CARD,
-    drop: (item: DragItem) => {
-      onMoveCard?.(item.id, title);
-      return { name: title };
+  const [dropHighlight, setDropHighlight] = useState(false);
+
+  const handleDrop = useCallback(
+    (item: DragItem) => {
+      if (onMoveCard && item.originalState !== title) {
+        console.log(`Dropping card ${item.id} to ${title}`);
+        onMoveCard(item.id, title);
+        return { name: title };
+      }
+      return undefined;
     },
+    [onMoveCard, title]
+  );
+
+  const [{ isOver, canDrop }, dropRef] = useDrop({
+    accept: ItemTypes.CARD,
+    drop: handleDrop,
     canDrop: (item: DragItem) => item.originalState !== title,
     collect: (monitor) => ({
       isOver: !!monitor.isOver(),
       canDrop: !!monitor.canDrop(),
     }),
-  }));
+    hover: (item, monitor) => {
+      // Highlight the drop target when a draggable item hovers over it
+      if (monitor.isOver({ shallow: true })) {
+        if (!dropHighlight) setDropHighlight(true);
+      } else {
+        if (dropHighlight) setDropHighlight(false);
+      }
+    },
+  });
 
   return (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

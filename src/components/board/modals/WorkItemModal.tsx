@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { WorkItem } from "../BoardColumn";
 import {
   Overlay,
@@ -10,12 +10,14 @@ import {
 import ModalHeader from "./ModalHeader";
 import ModalLeft from "./ModalLeft";
 import ModalRight from "./ModalRight";
+import workItemService from "../../../services/workItemService";
 
 interface WorkItemModalProps {
   item: WorkItem;
   open: boolean;
   onClose: () => void;
   isNew?: boolean;
+  onSave?: (item: WorkItem) => Promise<void>;
 }
 
 const WorkItemModal = ({
@@ -23,45 +25,112 @@ const WorkItemModal = ({
   open,
   onClose,
   isNew = false,
+  onSave,
 }: WorkItemModalProps) => {
-  if (!item) return null;
-
   // State variables
-  const [description, setDescription] = useState(item.description || "");
+  const [description, setDescription] = useState("");
   const [editDescription, setEditDescription] = useState(false);
-  const [functionalDescription, setFunctionalDescription] = useState(
-    item.functionalDescription || ""
-  );
+  const [functionalDescription, setFunctionalDescription] = useState("");
   const [editFunctionalDescription, setEditFunctionalDescription] =
     useState(false);
-  const [technicalDescription, setTechnicalDescription] = useState(
-    item.technicalDescription || ""
-  );
+  const [technicalDescription, setTechnicalDescription] = useState("");
   const [editTechnicalDescription, setEditTechnicalDescription] =
     useState(false);
-  const [priority, setPriority] = useState(item.priority);
+  const [priority, setPriority] = useState(0);
   const [editPriority, setEditPriority] = useState(false);
-  const [assignedUserId, setAssignedUserId] = useState(
-    item.assignedUserId || ""
-  );
+  const [assignedUserId, setAssignedUserId] = useState("");
   const [editAssignedUserId, setEditAssignedUserId] = useState(false);
-  const [state, setState] = useState(item.state);
+  const [state, setState] = useState("");
   const [editState, setEditState] = useState(false);
-  const [areaId, setAreaId] = useState(item.areaId || "");
+  const [areaId, setAreaId] = useState("");
   const [editAreaId, setEditAreaId] = useState(false);
-  const [sprintId, setSprintId] = useState(item.sprintId || "");
+  const [sprintId, setSprintId] = useState("");
   const [editSprintId, setEditSprintId] = useState(false);
-  const [featureId, setFeatureId] = useState(item.featureId || "");
+  const [featureId, setFeatureId] = useState("");
   const [editFeatureId, setEditFeatureId] = useState(false);
-  const [startedDate, setStartedDate] = useState(item.startedDate || "");
+  const [startedDate, setStartedDate] = useState("");
   const [editStartedDate, setEditStartedDate] = useState(false);
-  const [dueDate, setDueDate] = useState(item.dueDate || "");
+  const [dueDate, setDueDate] = useState("");
   const [editDueDate, setEditDueDate] = useState(false);
-  const [completedDate, setCompletedDate] = useState(item.completedDate || "");
+  const [completedDate, setCompletedDate] = useState("");
   const [editCompletedDate, setEditCompletedDate] = useState(false);
-  const [tagIds, setTagIds] = useState(item.tagIds || []);
+  const [tagIds, setTagIds] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!open) return null;
+  // Update state from item prop whenever it changes
+  useEffect(() => {
+    if (item) {
+      setDescription(item.description || "");
+      setFunctionalDescription(item.functionalDescription || "");
+      setTechnicalDescription(item.technicalDescription || "");
+      setPriority(item.priority || 0);
+      setAssignedUserId(item.assignedUserId || "");
+      setState(item.state || "");
+      setAreaId(item.areaId || "");
+      setSprintId(item.sprintId || "");
+      setFeatureId(item.featureId || "");
+      setStartedDate(item.startedDate || "");
+      setDueDate(item.dueDate || "");
+      setCompletedDate(item.completedDate || "");
+      setTagIds(item.tagIds || []);
+    }
+  }, [item]);
+
+  const handleSave = async () => {
+    if (isLoading) return;
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Create updated work item from the current state
+      const updatedItem: WorkItem = {
+        ...item,
+        description,
+        functionalDescription,
+        technicalDescription,
+        priority,
+        assignedUserId,
+        state,
+        areaId,
+        sprintId,
+        featureId,
+        startedDate,
+        dueDate,
+        completedDate,
+        tagIds,
+      };
+
+      // If onSave prop is provided, call it
+      if (onSave) {
+        await onSave(updatedItem);
+      } else {
+        console.log("Saving work item:", updatedItem);
+
+        // Use workItemService based on isNew flag
+        if (isNew) {
+          await workItemService.create(updatedItem);
+        } else {
+          await workItemService.update(updatedItem);
+        }
+      }
+
+      // Close modal after successful save
+      onClose();
+    } catch (error) {
+      console.error("Error saving work item:", error);
+      setError(
+        typeof error === "string"
+          ? error
+          : "Failed to save work item. Please try again."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (!item || !open) return null;
 
   return (
     <Overlay>
@@ -95,8 +164,6 @@ const WorkItemModal = ({
           <ModalLeft
             description={description}
             setDescription={setDescription}
-            editDescription={editDescription}
-            setEditDescription={setEditDescription}
             teknikTasarim={technicalDescription}
             setTeknikTasarim={setTechnicalDescription}
             editTeknikTasarim={editTechnicalDescription}
@@ -124,8 +191,15 @@ const WorkItemModal = ({
         </ModalBody>
 
         <ModalFooter>
-          <ModalHeaderBtn style={{ minWidth: 120 }}>
-            {isNew ? "Create" : "Save and Close"}
+          {error && (
+            <div style={{ color: "#ff5252", marginRight: "12px" }}>{error}</div>
+          )}
+          <ModalHeaderBtn
+            style={{ minWidth: 120 }}
+            onClick={handleSave}
+            disabled={isLoading}
+          >
+            {isLoading ? "Saving..." : isNew ? "Create" : "Save and Close"}
           </ModalHeaderBtn>
         </ModalFooter>
       </Modal>
