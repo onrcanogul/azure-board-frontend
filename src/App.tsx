@@ -8,6 +8,7 @@ import BacklogPage from "./pages/BacklogPage";
 import SprintsPage from "./pages/SprintsPage";
 import WorkItemPage from "./pages/WorkItemPage";
 import AuthPage from "./pages/LoginPage";
+import ToastManager from "./components/toast/ToastManager";
 import "./App.css";
 
 initializeIcons();
@@ -22,15 +23,18 @@ function App() {
 
   return (
     <>
+      <ToastManager />
       <Routes>
         <Route path="/login" element={<AuthPage />} />
-        <Route path="/" element={<Navigate to="/login" />} />
         <Route path="/boards" element={<BoardPage />} />
         <Route path="/overview" element={<OverviewPage />} />
         <Route path="/work-items" element={<WorkItemPage />} />
         <Route path="/backlogs" element={<BacklogPage />} />
         <Route path="/sprints" element={<SprintsPage />} />
-        <Route path="*" element={<Navigate to="/login" />} />
+
+        {/* Ana sayfaya ve 404 sayfalarına yönlendirmeler */}
+        <Route path="/" element={<Navigate to="/boards" />} />
+        <Route path="*" element={<Navigate to="/boards" />} />
       </Routes>
     </>
   );

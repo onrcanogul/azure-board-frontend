@@ -5,6 +5,7 @@ import { useDrop } from "react-dnd";
 import { ItemTypes } from "./DragDropTypes";
 import type { DragItem } from "./DragDropTypes";
 import React, { useState, useCallback } from "react";
+import { WorkItemType } from "../../services/workItemService";
 
 export interface WorkItem {
   id: string; // UUID
@@ -24,6 +25,7 @@ export interface WorkItem {
   completedDate: string; // ISO string
   isDeleted: boolean;
   tagIds: string[];
+  type?: WorkItemType; // İş öğesinin tipi
 }
 
 interface BoardColumnProps {

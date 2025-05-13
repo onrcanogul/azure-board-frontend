@@ -4,14 +4,38 @@ import type {
   PbiCreatedCommand,
   PbiUpdateCommand,
 } from "../domain/commands/pbiCommands";
+import { API_GATEWAY_URL } from "../config/api";
+import { PbiState } from "../domain/models/productBacklogItem";
 
-export class PbiService {
-  private readonly baseUrl = "/api/pbi";
+class PbiService {
+  private readonly baseUrl = API_GATEWAY_URL + "/pbi";
+
+  // Helper to process PBI items consistently
+  private processPbiItem(item: any): ProductBacklogItem {
+    return {
+      ...item,
+      state: item.state || PbiState.NEW,
+      tagIds: new Set(item.tagIds || []),
+      dueDate: item.dueDate ? new Date(item.dueDate) : null,
+      startedDate: item.startedDate ? new Date(item.startedDate) : null,
+      completedDate: item.completedDate ? new Date(item.completedDate) : null,
+      isDeleted: item.deleted || item.isDeleted || false, // Handle both deleted and isDeleted fields
+    };
+  }
 
   // Command Operations
   async create(command: PbiCreatedCommand): Promise<void> {
     try {
-      const response = await axios.post(this.baseUrl, command);
+      // Convert Set to Array for tagIds to avoid serialization issues
+      const commandData = {
+        ...command,
+        tagIds: Array.isArray(command.tagIds)
+          ? command.tagIds
+          : Array.from(command.tagIds || []),
+      };
+
+      console.log("Sending PBI create command:", commandData);
+      const response = await axios.post(this.baseUrl, commandData);
       return response.data;
     } catch (error) {
       throw this.handleError(error);
@@ -20,7 +44,16 @@ export class PbiService {
 
   async update(command: PbiUpdateCommand): Promise<void> {
     try {
-      const response = await axios.put(this.baseUrl, command);
+      // Convert Set to Array for tagIds to avoid serialization issues
+      const commandData = {
+        ...command,
+        tagIds: Array.isArray(command.tagIds)
+          ? command.tagIds
+          : Array.from(command.tagIds || []),
+      };
+
+      console.log("Sending PBI update command:", commandData);
+      const response = await axios.put(this.baseUrl, commandData);
       return response.data;
     } catch (error) {
       throw this.handleError(error);
@@ -40,7 +73,11 @@ export class PbiService {
   async getAll(): Promise<ProductBacklogItem[]> {
     try {
       const response = await axios.get(this.baseUrl);
-      return response.data.data;
+      console.log("Raw API response in getAll:", response.data);
+
+      // Process the items to ensure they have valid states
+      const items = response.data.data || [];
+      return items.map((item: any) => this.processPbiItem(item));
     } catch (error) {
       throw this.handleError(error);
     }
@@ -49,7 +86,7 @@ export class PbiService {
   async getById(id: string): Promise<ProductBacklogItem> {
     try {
       const response = await axios.get(`${this.baseUrl}/${id}`);
-      return response.data.data;
+      return this.processPbiItem(response.data.data);
     } catch (error) {
       throw this.handleError(error);
     }
@@ -58,7 +95,11 @@ export class PbiService {
   async getByUser(userId: string): Promise<ProductBacklogItem[]> {
     try {
       const response = await axios.get(`${this.baseUrl}/user/${userId}`);
-      return response.data.data;
+      console.log("Raw API response in getByUser:", response.data);
+
+      // Process the items to ensure they have valid states
+      const items = response.data.data || [];
+      return items.map((item: any) => this.processPbiItem(item));
     } catch (error) {
       throw this.handleError(error);
     }
@@ -67,7 +108,8 @@ export class PbiService {
   async getByTag(tagId: string): Promise<ProductBacklogItem[]> {
     try {
       const response = await axios.get(`${this.baseUrl}/tag/${tagId}`);
-      return response.data.data;
+      const items = response.data.data || [];
+      return items.map((item: any) => this.processPbiItem(item));
     } catch (error) {
       throw this.handleError(error);
     }
@@ -76,7 +118,8 @@ export class PbiService {
   async getByFeature(featureId: string): Promise<ProductBacklogItem[]> {
     try {
       const response = await axios.get(`${this.baseUrl}/feature/${featureId}`);
-      return response.data.data;
+      const items = response.data.data || [];
+      return items.map((item: any) => this.processPbiItem(item));
     } catch (error) {
       throw this.handleError(error);
     }
@@ -92,3 +135,5 @@ export class PbiService {
     throw error;
   }
 }
+
+export default new PbiService();

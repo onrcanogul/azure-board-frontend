@@ -14,6 +14,14 @@ interface ModalRightProps {
   setTargetDate: (date: string) => void;
   editTargetDate: boolean;
   setEditTargetDate: (edit: boolean) => void;
+  storyPoint?: number;
+  setStoryPoint?: (storyPoint: number) => void;
+  editStoryPoint?: boolean;
+  setEditStoryPoint?: (edit: boolean) => void;
+  businessValue?: number;
+  setBusinessValue?: (businessValue: number) => void;
+  editBusinessValue?: boolean;
+  setEditBusinessValue?: (edit: boolean) => void;
 }
 
 const ModalRight = ({
@@ -29,6 +37,14 @@ const ModalRight = ({
   setTargetDate,
   editTargetDate,
   setEditTargetDate,
+  storyPoint = 0,
+  setStoryPoint = () => {},
+  editStoryPoint = false,
+  setEditStoryPoint = () => {},
+  businessValue = 0,
+  setBusinessValue = () => {},
+  editBusinessValue = false,
+  setEditBusinessValue = () => {},
 }: ModalRightProps) => {
   return (
     <Right>
@@ -50,6 +66,68 @@ const ModalRight = ({
             Priority: <b>{priority}</b>
           </SectionBox>
         )}
+
+        <SectionBox>
+          {editStoryPoint ? (
+            <input
+              type="number"
+              min="0"
+              max="100"
+              value={storyPoint}
+              autoFocus
+              onChange={(e) => setStoryPoint(Number(e.target.value))}
+              onBlur={() => setEditStoryPoint(false)}
+              style={{
+                background: "#232422",
+                color: "#fff",
+                border: "1px solid #444",
+                borderRadius: 3,
+                fontSize: 15,
+                padding: "4px 8px",
+                width: "100%",
+              }}
+            />
+          ) : (
+            <span
+              onClick={() => setEditStoryPoint(true)}
+              style={{ cursor: "pointer", display: "block" }}
+            >
+              Story Point: <b>{storyPoint > 0 ? storyPoint : "Not set"}</b>
+            </span>
+          )}
+        </SectionBox>
+
+        <SectionBox>
+          {editBusinessValue ? (
+            <input
+              type="number"
+              min="0"
+              max="10"
+              value={businessValue}
+              autoFocus
+              onChange={(e) => setBusinessValue(Number(e.target.value))}
+              onBlur={() => setEditBusinessValue(false)}
+              style={{
+                background: "#232422",
+                color: "#fff",
+                border: "1px solid #444",
+                borderRadius: 3,
+                fontSize: 15,
+                padding: "4px 8px",
+                width: "100%",
+              }}
+            />
+          ) : (
+            <span
+              onClick={() => setEditBusinessValue(true)}
+              style={{ cursor: "pointer", display: "block" }}
+            >
+              Business Value:{" "}
+              <b>{businessValue > 0 ? businessValue : "Not set"}</b>
+            </span>
+          )}
+        </SectionBox>
+
         <SectionBox>
           {editStartDate ? (
             <input

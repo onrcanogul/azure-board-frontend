@@ -7,8 +7,73 @@ import type { WorkItem } from "./board/BoardColumn";
 import { useState, useEffect, useCallback } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
-import workItemService from "../services/workItemService";
 import { v4 as uuidv4 } from "uuid";
+import {
+  showErrorToast,
+  showSuccessToast,
+} from "../components/toast/ToastManager";
+import pbiService from "../services/pbiService";
+import {
+  type ProductBacklogItem,
+  PbiState,
+} from "../domain/models/productBacklogItem";
+
+// ProductBacklogItem -> WorkItem dönüşümü için yardımcı fonksiyon
+const pbiToWorkItem = (pbi: ProductBacklogItem): WorkItem => {
+  return {
+    id: pbi.id,
+    sprintId: pbi.sprintId,
+    areaId: pbi.areaId,
+    featureId: pbi.featureId,
+    assignedUserId: pbi.assignedUserId,
+    description: pbi.description,
+    functionalDescription: pbi.functionalDescription,
+    technicalDescription: pbi.technicalDescription,
+    priority: pbi.priority,
+    state: pbi.state ? stateMapping[pbi.state] : "To Do", // Handle null state
+    storyPoint: pbi.storyPoint,
+    businessValue: pbi.businessValue,
+    dueDate: pbi.dueDate ? pbi.dueDate.toISOString() : "",
+    startedDate: pbi.startedDate ? pbi.startedDate.toISOString() : "",
+    completedDate: pbi.completedDate ? pbi.completedDate.toISOString() : "",
+    isDeleted: pbi.isDeleted || false,
+    tagIds: Array.isArray(pbi.tagIds)
+      ? pbi.tagIds
+      : pbi.tagIds
+      ? Array.from(pbi.tagIds)
+      : [], // Handle both array and Set
+  };
+};
+
+// WorkItem -> ProductBacklogItem dönüşümü için yardımcı fonksiyon
+const workItemToPbi = (workItem: WorkItem): Partial<ProductBacklogItem> => {
+  return {
+    id: workItem.id,
+    sprintId: workItem.sprintId,
+    areaId: workItem.areaId,
+    featureId: workItem.featureId,
+    assignedUserId: workItem.assignedUserId,
+    description: workItem.description,
+    functionalDescription: workItem.functionalDescription,
+    technicalDescription: workItem.technicalDescription,
+    priority: workItem.priority,
+    state:
+      columnToStateMapping[
+        workItem.state as keyof typeof columnToStateMapping
+      ] || PbiState.NEW,
+    storyPoint: workItem.storyPoint,
+    businessValue: workItem.businessValue,
+    dueDate: workItem.dueDate ? new Date(workItem.dueDate) : new Date(),
+    startedDate: workItem.startedDate
+      ? new Date(workItem.startedDate)
+      : new Date(),
+    completedDate: workItem.completedDate
+      ? new Date(workItem.completedDate)
+      : new Date(),
+    isDeleted: workItem.isDeleted || false,
+    tagIds: new Set(Array.isArray(workItem.tagIds) ? workItem.tagIds : []), // Handle null or undefined tagIds
+  };
+};
 
 const BoardWrapper = styled.div`
   display: flex;
@@ -49,141 +114,229 @@ const BoardContainer = styled.div`
   }
 `;
 
+// PbiState değerlerini kanban düzeni için eşleştirme
+const stateMapping = {
+  [PbiState.NEW]: "To Do",
+  [PbiState.ACTIVE]: "In Progress",
+  [PbiState.RESOLVED]: "Done",
+  [PbiState.CLOSED]: "Done",
+};
+
+// Kanban düzeninden PbiState'e eşleştirme
+const columnToStateMapping = {
+  "To Do": PbiState.NEW,
+  "In Progress": PbiState.ACTIVE,
+  Done: PbiState.RESOLVED,
+};
+
 const columns = [
   { key: "To Do", label: "To Do" },
   { key: "In Progress", label: "In Progress" },
   { key: "Done", label: "Done" },
 ];
 
-const emptyWorkItem = (state: string): WorkItem => ({
-  id: uuidv4(),
-  sprintId: "",
-  areaId: "",
-  featureId: "",
-  assignedUserId: "",
-  description: "New Work Item",
-  functionalDescription: "",
-  technicalDescription: "",
-  priority: 0,
-  state,
-  storyPoint: 0,
-  businessValue: 0,
-  dueDate: "",
-  startedDate: "",
-  completedDate: "",
-  isDeleted: false,
-  tagIds: [],
-});
+// Sabit kullanıcı ID
+const CURRENT_USER_ID = "a8e4ed53-b671-4f21-a3ee-fc87f1299a11";
+
+// State değişikliklerini takip eden observable sistem
+let observers: (() => void)[] = [];
+
+const notifyObservers = () => {
+  observers.forEach((observer) => observer());
+};
 
 const Board = () => {
-  const [workItems, setWorkItems] = useState<WorkItem[]>([]);
-  const [selectedItem, setSelectedItem] = useState<WorkItem | null>(null);
+  const [pbis, setPbis] = useState<ProductBacklogItem[]>([]);
+  const [selectedPbi, setSelectedPbi] = useState<ProductBacklogItem | null>(
+    null
+  );
   const [modalOpen, setModalOpen] = useState(false);
   const [isNew, setIsNew] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [viewType, setViewType] = useState<"all" | "my">("my"); // Görünüm tipi: all=tüm PBI'lar, my=kullanıcıya atanmış PBI'lar
 
-  const loadWorkItems = useCallback(async () => {
+  const loadPbis = useCallback(async () => {
     try {
+      setIsLoading(true);
       setError(null);
-      const items = await workItemService.getAll();
-      setWorkItems(items);
+
+      let loadedPbis: ProductBacklogItem[] = [];
+
+      // Görünüm tipine göre farklı veri yükleme
+      if (viewType === "my") {
+        // Kullanıcıya atanmış PBI'ları getir
+        const response = await pbiService.getByUser(CURRENT_USER_ID);
+        console.log("Raw API response:", response);
+        loadedPbis = response;
+      } else {
+        // Tüm PBI'ları getir
+        loadedPbis = await pbiService.getAll();
+      }
+
+      console.log("Loaded PBIs:", loadedPbis);
+      setPbis(loadedPbis);
     } catch (err) {
-      console.error("Error loading work items:", err);
-      setError("Failed to load work items. Please refresh the page.");
+      console.error("Error loading PBIs:", err);
+      setError("PBI'lar yüklenemedi. Lütfen sayfayı yenileyin.");
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [viewType]);
 
-  // Load work items from service
+  // Observable sisteme abone ol
   useEffect(() => {
-    loadWorkItems();
+    loadPbis();
 
-    // Subscribe to changes in the work item service
-    const unsubscribe = workItemService.subscribe(() => {
-      loadWorkItems();
-    });
+    // Observable pattern için subscribe
+    const observerCallback = () => loadPbis();
+    observers.push(observerCallback);
 
     return () => {
-      unsubscribe();
+      // Component unmount olduğunda observer'ı kaldır
+      observers = observers.filter((observer) => observer !== observerCallback);
     };
-  }, [loadWorkItems]);
+  }, [loadPbis]);
 
-  const handleCardClick = (item: WorkItem) => {
-    setSelectedItem(item);
-    setModalOpen(true);
-    setIsNew(false);
+  const handleCardClick = (workItem: WorkItem) => {
+    // WorkItem'ı PBI'a dönüştür
+    const pbi = pbis.find((p) => p.id === workItem.id);
+    if (pbi) {
+      setSelectedPbi(pbi);
+      setModalOpen(true);
+      setIsNew(false);
+    }
   };
 
   const handleModalClose = () => {
     setModalOpen(false);
-    setSelectedItem(null);
+    setSelectedPbi(null);
     setIsNew(false);
   };
 
-  const handleNewItem = (state: string) => {
-    setSelectedItem(emptyWorkItem(state));
+  const handleNewItem = (columnState: string) => {
+    // Kanban sütununu PbiState'e dönüştür
+    const pbiState =
+      columnToStateMapping[columnState as keyof typeof columnToStateMapping] ||
+      PbiState.NEW;
+
+    // Yeni PBI oluştur
+    const newPbi: Partial<ProductBacklogItem> = {
+      id: uuidv4(),
+      sprintId: "",
+      areaId: "",
+      featureId: "",
+      assignedUserId: CURRENT_USER_ID,
+      description: "Yeni PBI",
+      functionalDescription: "",
+      technicalDescription: "",
+      priority: 0,
+      state: pbiState,
+      storyPoint: 0,
+      businessValue: 0,
+      dueDate: new Date(),
+      startedDate: new Date(),
+      completedDate: new Date(),
+      tagIds: new Set<string>(),
+      isDeleted: false,
+    };
+
+    setSelectedPbi(newPbi as ProductBacklogItem);
     setModalOpen(true);
     setIsNew(true);
   };
 
   const handleMoveCard = useCallback(
-    async (id: string, targetState: string) => {
+    async (id: string, targetColumnState: string) => {
       try {
-        // Find the item to move
-        const itemToMove = workItems.find((item) => item.id === id);
-        if (!itemToMove) {
-          console.error(`Item with id ${id} not found`);
+        // İlgili PBI'ı bul
+        const pbiToMove = pbis.find((item) => item.id === id);
+        if (!pbiToMove) {
+          console.error(`PBI with id ${id} not found`);
           return;
         }
 
-        // Skip if the item is already in the target state
-        if (itemToMove.state === targetState) {
-          console.log(`Item is already in ${targetState} state`);
+        // Hedef durumu PbiState'e dönüştür
+        const targetPbiState =
+          columnToStateMapping[
+            targetColumnState as keyof typeof columnToStateMapping
+          ];
+
+        // Eğer zaten o durumdaysa, işlem yapma
+        if (stateMapping[pbiToMove.state] === targetColumnState) {
+          console.log(`PBI is already in ${targetColumnState} state`);
           return;
         }
 
-        // Update state locally first for responsiveness
-        setWorkItems((prevItems) =>
-          prevItems.map((item) =>
-            item.id === id ? { ...item, state: targetState } : item
+        // Optimistik UI güncellemesi için state'i güncelle
+        setPbis((prevPbis) =>
+          prevPbis.map((pbi) =>
+            pbi.id === id ? { ...pbi, state: targetPbiState } : pbi
           )
         );
 
-        // Update in the service with retry logic
+        // PBI'ı güncelle
         try {
-          const updatedItem = { ...itemToMove, state: targetState };
-          await workItemService.update(updatedItem);
-          console.log(`Card ${id} moved to ${targetState} successfully`);
+          const updatedPbi = {
+            ...pbiToMove,
+            state: targetPbiState,
+          };
+
+          await pbiService.update(updatedPbi);
+          showSuccessToast(
+            `PBI durumu başarıyla "${targetColumnState}" olarak güncellendi`
+          );
+          console.log(`PBI ${id} moved to ${targetColumnState} successfully`);
+
+          // Observable sistemi bilgilendir
+          notifyObservers();
         } catch (updateError) {
-          console.error(`Error updating item ${id}:`, updateError);
-          // The subscription will reload items if update fails
+          console.error(`Error updating PBI ${id}:`, updateError);
+          showErrorToast(
+            `Durum değiştirme işlemi başarısız oldu: ${
+              (updateError as Error).message || "Bilinmeyen bir hata oluştu"
+            }`
+          );
+          // Hata durumunda tekrar yükle
+          loadPbis();
         }
       } catch (error) {
-        console.error(`Error moving card ${id} to ${targetState}:`, error);
-        setError("Failed to move card. Please try again.");
+        console.error(`Error moving PBI ${id} to ${targetColumnState}:`, error);
+        setError("PBI durumu değiştirilemedi. Lütfen tekrar deneyin.");
       }
     },
-    [workItems]
+    [pbis]
   );
 
-  const handleSaveWorkItem = async (updatedItem: WorkItem) => {
+  const handleSavePbi = async (workItem: WorkItem) => {
     try {
       setError(null);
+
+      // WorkItem'ı ProductBacklogItem'a dönüştür
+      const pbiData = workItemToPbi(workItem);
+
       if (isNew) {
-        // Create a new work item
-        await workItemService.create(updatedItem);
+        // Yeni PBI oluştur
+        await pbiService.create(pbiData as any);
+        showSuccessToast("Yeni PBI başarıyla oluşturuldu");
       } else {
-        // Update existing work item
-        await workItemService.update(updatedItem);
+        // Mevcut PBI'ı güncelle
+        await pbiService.update(pbiData as any);
+        showSuccessToast("PBI başarıyla güncellendi");
       }
-      // No need to update state manually, subscription will handle it
+
+      // Observable sistemi bilgilendir
+      notifyObservers();
     } catch (error) {
-      console.error("Error saving work item:", error);
-      setError("Failed to save work item. Please try again.");
+      console.error("Error saving PBI:", error);
+      showErrorToast(`PBI kaydedilemedi: ${(error as Error).message}`);
+      setError("PBI kaydedilemedi. Lütfen tekrar deneyin.");
       throw error; // Re-throw to be handled by the modal
     }
+  };
+
+  const toggleViewType = () => {
+    setViewType((prev) => (prev === "all" ? "my" : "all"));
   };
 
   if (error) {
@@ -191,23 +344,39 @@ const Board = () => {
       <div style={{ color: "red", padding: "20px", textAlign: "center" }}>
         {error}
         <button
-          onClick={loadWorkItems}
+          onClick={loadPbis}
           style={{ marginLeft: "10px", padding: "5px 10px" }}
         >
-          Retry
+          Tekrar Dene
         </button>
       </div>
     );
   }
 
+  // PBI'ları WorkItem'a dönüştür ve kanban sütunlarına göre filtrele
+  const getWorkItemsByColumn = (columnKey: string): WorkItem[] => {
+    return pbis
+      .filter((pbi) => !pbi.isDeleted)
+      .filter((pbi) => {
+        // If state is null, assign it to "To Do" column
+        const mappedState = pbi.state ? stateMapping[pbi.state] : "To Do";
+        return mappedState === columnKey;
+      })
+      .map(pbiToWorkItem);
+  };
+
   return (
     <DndProvider backend={HTML5Backend}>
       <BoardWrapper>
-        <BoardHeader />
+        <BoardHeader
+          onCreateWorkItem={() => handleNewItem("To Do")}
+          viewType={viewType}
+          onToggleViewType={toggleViewType}
+        />
         <BoardFilterBar />
         {isLoading ? (
           <div style={{ padding: "20px", textAlign: "center" }}>
-            Loading work items...
+            PBI'lar yükleniyor...
           </div>
         ) : (
           <BoardContainer>
@@ -215,7 +384,7 @@ const Board = () => {
               <BoardColumn
                 key={column.key}
                 title={column.key}
-                items={workItems.filter((item) => item.state === column.key)}
+                items={getWorkItemsByColumn(column.key)}
                 onCardClick={handleCardClick}
                 onAddItem={() => handleNewItem(column.key)}
                 onMoveCard={handleMoveCard}
@@ -223,13 +392,13 @@ const Board = () => {
             ))}
           </BoardContainer>
         )}
-        {selectedItem && (
+        {selectedPbi && (
           <WorkItemModal
-            item={selectedItem}
+            item={pbiToWorkItem(selectedPbi as ProductBacklogItem)}
             open={modalOpen}
             onClose={handleModalClose}
             isNew={isNew}
-            onSave={handleSaveWorkItem}
+            onSave={handleSavePbi}
           />
         )}
       </BoardWrapper>

@@ -55,6 +55,10 @@ const WorkItemModal = ({
   const [completedDate, setCompletedDate] = useState("");
   const [editCompletedDate, setEditCompletedDate] = useState(false);
   const [tagIds, setTagIds] = useState<string[]>([]);
+  const [storyPoint, setStoryPoint] = useState(0);
+  const [editStoryPoint, setEditStoryPoint] = useState(false);
+  const [businessValue, setBusinessValue] = useState(0);
+  const [editBusinessValue, setEditBusinessValue] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -74,6 +78,8 @@ const WorkItemModal = ({
       setDueDate(item.dueDate || "");
       setCompletedDate(item.completedDate || "");
       setTagIds(item.tagIds || []);
+      setStoryPoint(item.storyPoint || 0);
+      setBusinessValue(item.businessValue || 0);
     }
   }, [item]);
 
@@ -84,6 +90,10 @@ const WorkItemModal = ({
     setError(null);
 
     try {
+      // Mevcut değerleri kullanıcı ID'si ile birlikte ayarla
+      const currentAssignedUserId =
+        assignedUserId || "a8e4ed53-b671-4f21-a3ee-fc87f1299a11";
+
       // Create updated work item from the current state
       const updatedItem: WorkItem = {
         ...item,
@@ -91,7 +101,7 @@ const WorkItemModal = ({
         functionalDescription,
         technicalDescription,
         priority,
-        assignedUserId,
+        assignedUserId: currentAssignedUserId,
         state,
         areaId,
         sprintId,
@@ -100,18 +110,22 @@ const WorkItemModal = ({
         dueDate,
         completedDate,
         tagIds,
+        storyPoint,
+        businessValue,
       };
+
+      console.log("Saving work item:", updatedItem);
 
       // If onSave prop is provided, call it
       if (onSave) {
         await onSave(updatedItem);
       } else {
-        console.log("Saving work item:", updatedItem);
-
         // Use workItemService based on isNew flag
         if (isNew) {
+          console.log("Creating new PBI work item");
           await workItemService.create(updatedItem);
         } else {
+          console.log("Updating existing work item");
           await workItemService.update(updatedItem);
         }
       }
@@ -120,11 +134,7 @@ const WorkItemModal = ({
       onClose();
     } catch (error) {
       console.error("Error saving work item:", error);
-      setError(
-        typeof error === "string"
-          ? error
-          : "Failed to save work item. Please try again."
-      );
+      setError("İş öğesi kaydedilemedi. Lütfen tekrar deneyin.");
     } finally {
       setIsLoading(false);
     }
@@ -187,6 +197,14 @@ const WorkItemModal = ({
             setTargetDate={setDueDate}
             editTargetDate={editDueDate}
             setEditTargetDate={setEditDueDate}
+            storyPoint={storyPoint}
+            setStoryPoint={setStoryPoint}
+            editStoryPoint={editStoryPoint}
+            setEditStoryPoint={setEditStoryPoint}
+            businessValue={businessValue}
+            setBusinessValue={setBusinessValue}
+            editBusinessValue={editBusinessValue}
+            setEditBusinessValue={setEditBusinessValue}
           />
         </ModalBody>
 
