@@ -7,6 +7,7 @@ import EmptyPage from "./pages/EmptyPage";
 import BacklogPage from "./pages/BacklogPage";
 import SprintsPage from "./pages/SprintsPage";
 import WorkItemPage from "./pages/WorkItemPage";
+import AuthPage from "./pages/LoginPage";
 import "./App.css";
 
 initializeIcons();
@@ -22,13 +23,14 @@ function App() {
   return (
     <>
       <Routes>
-        <Route path="/" element={<Navigate to="/boards" />} />
+        <Route path="/login" element={<AuthPage />} />
+        <Route path="/" element={<Navigate to="/login" />} />
         <Route path="/boards" element={<BoardPage />} />
         <Route path="/overview" element={<OverviewPage />} />
         <Route path="/work-items" element={<WorkItemPage />} />
         <Route path="/backlogs" element={<BacklogPage />} />
         <Route path="/sprints" element={<SprintsPage />} />
-        <Route path="*" element={<Navigate to="/boards" />} />
+        <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
     </>
   );
