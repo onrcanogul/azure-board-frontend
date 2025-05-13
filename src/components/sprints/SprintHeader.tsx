@@ -1,4 +1,4 @@
-import { Stack, Text } from "@fluentui/react";
+import { Stack, Text, PrimaryButton } from "@fluentui/react";
 import styled from "@emotion/styled";
 import { Icon } from "@fluentui/react";
 import { useState } from "react";
@@ -22,6 +22,7 @@ const HeaderTitle = styled.div`
 const HeaderActions = styled.div`
   display: flex;
   gap: 12px;
+  align-items: center;
 `;
 
 const AddButton = styled.div`
@@ -61,14 +62,11 @@ const SprintHeader: React.FC<SprintHeaderProps> = ({ onSprintCreated }) => {
         </Text>
       </HeaderTitle>
       <HeaderActions>
-        <AddButton onClick={() => setIsModalOpen(true)}>
-          <Icon
-            iconName="Add"
-            style={{ fontSize: 20, color: "#4fa3ff" }}
-            aria-label="Add sprint"
-            title="Add new sprint"
-          />
-        </AddButton>
+        <PrimaryButton
+          onClick={() => setIsModalOpen(true)}
+          iconProps={{ iconName: "Add" }}
+          text="Create Sprint"
+        />
       </HeaderActions>
 
       <CreateSprintModal

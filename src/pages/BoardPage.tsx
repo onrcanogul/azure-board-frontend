@@ -1,5 +1,5 @@
 import Board from "../components/Board";
-import ResponsiveLayout from "../components/layout/ResponsiveLayout";
+import ProjectLayout from "../components/layout/ProjectLayout";
 import { useLocation } from "react-router-dom";
 import { useEffect } from "react";
 
@@ -11,9 +11,9 @@ const BoardPage = () => {
   }, [location]);
 
   return (
-    <ResponsiveLayout>
+    <ProjectLayout requireTeam={true}>
       <Board />
-    </ResponsiveLayout>
+    </ProjectLayout>
   );
 };
 

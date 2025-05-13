@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Modal,
   TextField,
@@ -9,6 +9,8 @@ import {
   Dropdown,
   mergeStyleSets,
   Text,
+  MessageBar,
+  MessageBarType,
 } from "@fluentui/react";
 import type {
   IDropdownOption,
@@ -20,6 +22,11 @@ import type {
 import styled from "@emotion/styled";
 import { SprintState } from "../../domain/models/sprint";
 import { SprintService } from "../../services/sprintService";
+import {
+  showSuccessToast,
+  showErrorToast,
+  showInfoToast,
+} from "../../components/toast/ToastManager";
 
 interface CreateSprintModalProps {
   isOpen: boolean;
@@ -126,7 +133,7 @@ const dropdownStyles: Partial<IDropdownStyles> = {
 };
 
 const sprintStateOptions: IDropdownOption[] = [
-  { key: SprintState.PLANNED, text: "Planned" },
+  { key: SprintState.INACTIVE, text: "Inactive" },
   { key: SprintState.ACTIVE, text: "Active" },
 ];
 
@@ -139,37 +146,71 @@ const CreateSprintModal: React.FC<CreateSprintModalProps> = ({
 }) => {
   const [name, setName] = useState("");
   const [goal, setGoal] = useState("");
-  const [state, setState] = useState<SprintState>(SprintState.PLANNED);
+  const [state, setState] = useState<SprintState>(SprintState.INACTIVE);
   const [startDate, setStartDate] = useState<Date | undefined>(new Date());
   const [endDate, setEndDate] = useState<Date | undefined>(
     new Date(new Date().setDate(new Date().getDate() + 14)) // Default 2 weeks
   );
-  const [selectedTeamId, setSelectedTeamId] = useState(teamId);
-  const [selectedProjectId, setSelectedProjectId] = useState(projectId);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [selectedTeamId, setSelectedTeamId] = useState<string>("");
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
 
   const sprintService = new SprintService();
+
+  // Get project and team IDs from localStorage on component mount
+  useEffect(() => {
+    const storedTeamId = localStorage.getItem("selectedTeamId") || teamId;
+    const storedProjectId =
+      localStorage.getItem("selectedProjectId") || projectId;
+
+    setSelectedTeamId(storedTeamId);
+    setSelectedProjectId(storedProjectId);
+
+    if (!storedTeamId) {
+      setError(
+        "No team selected. Please select a team before creating a sprint."
+      );
+      showInfoToast("Lütfen önce bir takım seçin");
+    }
+
+    if (!storedProjectId) {
+      setError(
+        "No project selected. Please select a project before creating a sprint."
+      );
+      showInfoToast("Lütfen önce bir proje seçin");
+    }
+  }, [teamId, projectId, isOpen]);
 
   const handleSubmit = async () => {
     // Validation
     if (!name.trim()) {
       setError("Sprint name is required");
+      showErrorToast("Sprint adı gereklidir");
       return;
     }
 
     if (!startDate || !endDate) {
       setError("Start and end dates are required");
+      showErrorToast("Başlangıç ve bitiş tarihleri gereklidir");
       return;
     }
 
     if (startDate > endDate) {
       setError("Start date cannot be after end date");
+      showErrorToast("Başlangıç tarihi bitiş tarihinden sonra olamaz");
       return;
     }
 
-    if (!selectedTeamId || !selectedProjectId) {
-      setError("Team and Project are required");
+    if (!selectedTeamId) {
+      setError("Team ID is required. Please select a team first.");
+      showErrorToast("Takım seçilmedi. Lütfen önce bir takım seçin");
+      return;
+    }
+
+    if (!selectedProjectId) {
+      setError("Project ID is required. Please select a project first.");
+      showErrorToast("Proje seçilmedi. Lütfen önce bir proje seçin");
       return;
     }
 
@@ -177,7 +218,11 @@ const CreateSprintModal: React.FC<CreateSprintModalProps> = ({
     setError("");
 
     try {
-      await sprintService.create({
+      console.log(
+        `Creating sprint for team: ${selectedTeamId}, project: ${selectedProjectId}`
+      );
+
+      const createdSprint = await sprintService.create({
         name,
         goal,
         state,
@@ -187,12 +232,16 @@ const CreateSprintModal: React.FC<CreateSprintModalProps> = ({
         projectId: selectedProjectId,
       });
 
+      showSuccessToast(`"${name}" sprint başarıyla oluşturuldu`);
       onCreated();
       resetForm();
       onDismiss();
     } catch (err) {
       console.error("Error creating sprint:", err);
+      const errorMessage =
+        err instanceof Error ? err.message : "Bilinmeyen bir hata oluştu";
       setError("Failed to create sprint. Please try again.");
+      showErrorToast(`Sprint oluşturulurken hata: ${errorMessage}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -201,7 +250,7 @@ const CreateSprintModal: React.FC<CreateSprintModalProps> = ({
   const resetForm = () => {
     setName("");
     setGoal("");
-    setState(SprintState.PLANNED);
+    setState(SprintState.INACTIVE);
     setStartDate(new Date());
     setEndDate(new Date(new Date().setDate(new Date().getDate() + 14)));
     setError("");
@@ -242,86 +291,94 @@ const CreateSprintModal: React.FC<CreateSprintModalProps> = ({
       <div className={styles.form}>
         {error && (
           <FormRow>
-            <Text style={{ color: "#f1707b" }}>{error}</Text>
+            <MessageBar messageBarType={MessageBarType.error}>
+              {error}
+            </MessageBar>
           </FormRow>
         )}
 
-        <FormRow>
-          <TextField
-            label="Sprint Name"
-            required
-            value={name}
-            onChange={(_, newValue) => setName(newValue || "")}
-            placeholder="Enter sprint name"
-            styles={textFieldStyles}
-          />
-        </FormRow>
-
-        <FormRow>
-          <TextField
-            label="Goal"
-            multiline
-            rows={3}
-            value={goal}
-            onChange={(_, newValue) => setGoal(newValue || "")}
-            placeholder="What is the goal for this sprint?"
-            styles={textFieldStyles}
-          />
-        </FormRow>
-
-        <Stack horizontal tokens={{ childrenGap: 12 }}>
-          <Stack.Item grow>
+        {selectedTeamId && selectedProjectId ? (
+          <>
             <FormRow>
-              <DatePicker
-                label="Start Date"
-                value={startDate}
-                onSelectDate={handleStartDateChange}
-                firstDayOfWeek={0}
-                placeholder="Select start date"
-                ariaLabel="Select start date"
-                styles={datePickerStyles}
+              <TextField
+                label="Sprint Name"
+                required
+                value={name}
+                onChange={(_, newValue) => setName(newValue || "")}
+                placeholder="Enter sprint name"
+                styles={textFieldStyles}
               />
             </FormRow>
-          </Stack.Item>
-          <Stack.Item grow>
+
             <FormRow>
-              <DatePicker
-                label="End Date"
-                value={endDate}
-                onSelectDate={handleEndDateChange}
-                firstDayOfWeek={0}
-                placeholder="Select end date"
-                ariaLabel="Select end date"
-                styles={datePickerStyles}
-                minDate={startDate}
+              <TextField
+                label="Goal"
+                multiline
+                rows={3}
+                value={goal}
+                onChange={(_, newValue) => setGoal(newValue || "")}
+                placeholder="What is the goal for this sprint?"
+                styles={textFieldStyles}
               />
             </FormRow>
-          </Stack.Item>
-        </Stack>
 
-        <FormRow>
-          <Dropdown
-            label="State"
-            selectedKey={state}
-            onChange={(_, option) =>
-              option && setState(option.key as SprintState)
-            }
-            placeholder="Select a state"
-            options={sprintStateOptions}
-            styles={dropdownStyles}
-          />
-        </FormRow>
+            <Stack horizontal tokens={{ childrenGap: 12 }}>
+              <Stack.Item grow>
+                <FormRow>
+                  <DatePicker
+                    label="Start Date"
+                    value={startDate}
+                    onSelectDate={handleStartDateChange}
+                    firstDayOfWeek={0}
+                    placeholder="Select start date"
+                    ariaLabel="Select start date"
+                    styles={datePickerStyles}
+                  />
+                </FormRow>
+              </Stack.Item>
+              <Stack.Item grow>
+                <FormRow>
+                  <DatePicker
+                    label="End Date"
+                    value={endDate}
+                    onSelectDate={handleEndDateChange}
+                    firstDayOfWeek={0}
+                    placeholder="Select end date"
+                    ariaLabel="Select end date"
+                    styles={datePickerStyles}
+                    minDate={startDate}
+                  />
+                </FormRow>
+              </Stack.Item>
+            </Stack>
 
-        {/* If team ID or project ID are not provided as props, we could add dropdowns here to select them */}
+            <FormRow>
+              <Dropdown
+                label="State"
+                selectedKey={state}
+                onChange={(_, option) =>
+                  option && setState(option.key as SprintState)
+                }
+                placeholder="Select a state"
+                options={sprintStateOptions}
+                styles={dropdownStyles}
+              />
+            </FormRow>
 
-        <div className={styles.buttonRow}>
-          <DefaultButton text="Cancel" onClick={handleDismiss} />
-          <PrimaryButton
-            text={isSubmitting ? "Creating..." : "Create Sprint"}
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-          />
-        </div>
+            <div className={styles.buttonRow}>
+              <DefaultButton text="Cancel" onClick={handleDismiss} />
+              <PrimaryButton
+                text={isSubmitting ? "Creating..." : "Create Sprint"}
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+              />
+            </div>
+          </>
+        ) : (
+          <MessageBar messageBarType={MessageBarType.warning}>
+            Please select a project and team before creating a sprint.
+          </MessageBar>
+        )}
       </div>
     </Modal>
   );

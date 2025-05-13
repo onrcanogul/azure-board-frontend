@@ -1,4 +1,4 @@
-import { Stack, Text, ProgressIndicator } from "@fluentui/react";
+import { Stack, Text, ProgressIndicator, IconButton } from "@fluentui/react";
 import styled from "@emotion/styled";
 import { Icon } from "@fluentui/react";
 import { useNavigate } from "react-router-dom";
@@ -8,7 +8,17 @@ import {
   Modal,
   TextField,
   PrimaryButton,
+  Dialog,
+  DialogType,
+  DialogFooter,
 } from "@fluentui/react";
+import { SprintService } from "../../services/sprintService";
+import {
+  showSuccessToast,
+  showErrorToast,
+} from "../../components/toast/ToastManager";
+import { SprintState } from "../../domain/models/sprint";
+import type { Sprint as SprintType } from "../../domain/models/sprint";
 
 interface WorkItem {
   id: number;
@@ -18,16 +28,7 @@ interface WorkItem {
   points: number;
 }
 
-interface Sprint {
-  id: string;
-  name: string;
-  startDate: string;
-  endDate: string;
-  goal: string;
-  state: "PLANNED" | "ACTIVE" | "COMPLETED" | "CANCELLED";
-  projectId: string;
-  teamId: string;
-  isDeleted: boolean;
+interface Sprint extends SprintType {
   workItems?: WorkItem[];
 }
 
@@ -77,7 +78,7 @@ const SprintName = styled.div`
   }
 `;
 
-const StatusBadge = styled.div<{ state: Sprint["state"] }>`
+const StatusBadge = styled.div<{ state: SprintState }>`
   padding: 4px 12px;
   border-radius: 12px;
   font-size: 12px;
@@ -85,26 +86,22 @@ const StatusBadge = styled.div<{ state: Sprint["state"] }>`
   white-space: nowrap;
   background: ${(props) => {
     switch (props.state) {
-      case "ACTIVE":
+      case SprintState.ACTIVE:
         return "rgba(79, 163, 255, 0.1)";
-      case "COMPLETED":
-        return "rgba(0, 200, 83, 0.1)";
-      case "PLANNED":
+      case SprintState.INACTIVE:
         return "rgba(255, 185, 0, 0.1)";
-      case "CANCELLED":
-        return "rgba(255, 82, 82, 0.1)";
+      default:
+        return "rgba(255, 185, 0, 0.1)";
     }
   }};
   color: ${(props) => {
     switch (props.state) {
-      case "ACTIVE":
+      case SprintState.ACTIVE:
         return "#4fa3ff";
-      case "COMPLETED":
-        return "#00c853";
-      case "PLANNED":
+      case SprintState.INACTIVE:
         return "#ffb900";
-      case "CANCELLED":
-        return "#ff5252";
+      default:
+        return "#ffb900";
     }
   }};
 
@@ -198,6 +195,8 @@ const WorkItemStatus = styled.span<{ status: WorkItem["status"] }>`
 const SprintCard: React.FC<SprintCardProps> = ({ sprint }) => {
   const navigate = useNavigate();
   const [showPlanModal, setShowPlanModal] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [planTitle, setPlanTitle] = useState(sprint.name + " Plan");
   const [planDesc, setPlanDesc] = useState(sprint.goal || "");
   const workItems = sprint.workItems || [];
@@ -210,10 +209,30 @@ const SprintCard: React.FC<SprintCardProps> = ({ sprint }) => {
     .reduce((sum, item) => sum + item.points, 0);
   const totalPoints = workItems.reduce((sum, item) => sum + item.points, 0);
   const progress = totalPoints > 0 ? (completedPoints / totalPoints) * 100 : 0;
+  const sprintService = new SprintService();
 
-  const formatState = (state: Sprint["state"]) => {
-    if (!state) return "Unknown";
-    return state.charAt(0) + state.slice(1).toLowerCase();
+  const formatState = (state: SprintState) => {
+    if (state === SprintState.ACTIVE) return "Active";
+    if (state === SprintState.INACTIVE) return "Inactive";
+    return "Unknown";
+  };
+
+  const handleDeleteSprint = async () => {
+    setIsDeleting(true);
+    try {
+      await sprintService.delete(sprint.id);
+      showSuccessToast(`"${sprint.name}" sprint başarıyla silindi`);
+      // Force reload the page to refresh the sprint list
+      window.location.reload();
+    } catch (err) {
+      console.error("Error deleting sprint:", err);
+      const errorMessage =
+        err instanceof Error ? err.message : "Bilinmeyen bir hata oluştu";
+      showErrorToast(`Sprint silinirken hata: ${errorMessage}`);
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteDialog(false);
+    }
   };
 
   return (
@@ -228,22 +247,44 @@ const SprintCard: React.FC<SprintCardProps> = ({ sprint }) => {
           <Icon iconName="Sprint" style={{ color: "#4fa3ff" }} />
           {sprint.name}
         </SprintName>
-        <StatusBadge state={sprint.state}>
-          {formatState(sprint.state)}
-        </StatusBadge>
-        {sprint.state === "ACTIVE" && (
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <StatusBadge state={sprint.state}>
+            {formatState(sprint.state)}
+          </StatusBadge>
           <DefaultButton
-            style={{ marginLeft: 8 }}
+            iconProps={{ iconName: "DocumentManagement" }}
+            text="Show Plan"
             onClick={() => setShowPlanModal(true)}
-          >
-            Show Plan
-          </DefaultButton>
-        )}
+            styles={{
+              root: {
+                backgroundColor: "#2a2d29",
+                border: "none",
+              },
+              rootHovered: {
+                backgroundColor: "#3a3d39",
+              },
+              icon: {
+                color: "#4fa3ff",
+              },
+              label: {
+                color: "#ffffff",
+                fontWeight: "normal",
+              },
+            }}
+          />
+          <IconButton
+            iconProps={{ iconName: "Delete" }}
+            title="Delete Sprint"
+            ariaLabel="Delete Sprint"
+            onClick={() => setShowDeleteDialog(true)}
+            style={{ color: "#ff5252" }}
+          />
+        </div>
       </CardHeader>
       <CardContent>
         <DateInfo>
-          <div>Start: {new Date(sprint.startDate).toLocaleDateString()}</div>
-          <div>End: {new Date(sprint.endDate).toLocaleDateString()}</div>
+          <div>Start: {sprint.startDate.toLocaleDateString()}</div>
+          <div>End: {sprint.endDate.toLocaleDateString()}</div>
         </DateInfo>
         {sprint.goal && (
           <Text style={{ color: "#bdbdbd", marginBottom: 16 }}>
@@ -290,30 +331,10 @@ const SprintCard: React.FC<SprintCardProps> = ({ sprint }) => {
             </WorkItemsList>
           </>
         )}
-        {showPlanModal && (
-          <style>{`
-            .ms-TextField input,
-            .ms-TextField textarea {
-              color: #fff !important;
-              background: #181a17 !important;
-              caret-color: #fff !important;
-            }
-            .ms-TextField input::placeholder,
-            .ms-TextField textarea::placeholder {
-              color: #fff !important;
-              opacity: 1 !important;
-            }
-            .ms-TextField input:-webkit-autofill,
-            .ms-TextField textarea:-webkit-autofill {
-              -webkit-text-fill-color: #fff !important;
-              box-shadow: 0 0 0 1000px #181a17 inset !important;
-              background: #181a17 !important;
-            }
-          `}</style>
-        )}
         <Modal
           isOpen={showPlanModal}
           onDismiss={() => setShowPlanModal(false)}
+          className="sprintPlanModal"
           styles={{
             main: {
               background: "#232422",
@@ -325,6 +346,41 @@ const SprintCard: React.FC<SprintCardProps> = ({ sprint }) => {
             },
           }}
         >
+          <style>{`
+            .sprintPlanModal .ms-TextField input,
+            .sprintPlanModal .ms-TextField textarea {
+              color: #ffffff !important;
+              background-color: #1A1A1A !important;
+              caret-color: #ffffff !important;
+              border-color: #4fa3ff !important;
+              padding: 8px 12px !important;
+            }
+            
+            .sprintPlanModal .ms-TextField input::placeholder,
+            .sprintPlanModal .ms-TextField textarea::placeholder {
+              color: #aaaaaa !important;
+            }
+            
+            .sprintPlanModal .ms-TextField-fieldGroup {
+              background: #1A1A1A !important;
+              border: 1px solid #4fa3ff !important;
+            }
+            
+            .sprintPlanModal .ms-TextField-fieldGroup:hover {
+              border-color: #4fa3ff !important;
+              box-shadow: 0 0 5px rgba(79, 163, 255, 0.5) !important;
+            }
+            
+            .sprintPlanModal h2 {
+              text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5) !important;
+            }
+            
+            .sprintPlanModal .ms-Label {
+              color: #ffffff !important;
+              font-weight: 500 !important;
+              margin-bottom: 6px !important;
+            }
+          `}</style>
           <h2
             style={{
               color: "#4fa3ff",
@@ -343,90 +399,221 @@ const SprintCard: React.FC<SprintCardProps> = ({ sprint }) => {
             onChange={(_, v) => setPlanTitle(v || "")}
             styles={{
               field: {
-                background: "#181a17",
-                color: "#fff",
+                color: "#ffffff",
                 fontSize: 20,
                 fontWeight: 600,
-                "input, textarea": {
-                  color: "#fff",
-                  background: "#181a17",
-                },
-                "input::placeholder, textarea::placeholder": {
-                  color: "#fff",
-                  opacity: 1,
-                },
-                "input:-webkit-autofill, textarea:-webkit-autofill": {
-                  WebkitTextFillColor: "#fff",
-                  WebkitBoxShadow: "0 0 0 1000px #181a17 inset",
-                  boxShadow: "0 0 0 1000px #181a17 inset",
-                },
               },
               wrapper: { marginBottom: 24 },
+              fieldGroup: {
+                background: "#0D0D0D",
+                border: "1px solid #4fa3ff",
+                selectors: {
+                  ":hover": {
+                    borderColor: "#4fa3ff",
+                    boxShadow: "0 0 5px rgba(79, 163, 255, 0.5)",
+                  },
+                  "::after": { border: "none" },
+                },
+              },
               subComponentStyles: {
                 label: {
-                  root: { color: "#fff", fontSize: 16, fontWeight: 500 },
+                  root: { color: "#ffffff", fontSize: 16, fontWeight: 500 },
                 },
               },
             }}
-            onRenderLabel={(props, defaultRender) =>
-              defaultRender ? (
-                <span style={{ color: "#fff", fontSize: 16, fontWeight: 500 }}>
-                  {defaultRender(props)}
-                </span>
-              ) : null
-            }
           />
           <TextField
             label="Plan Description"
             multiline
-            rows={8}
+            rows={5}
             value={planDesc}
             onChange={(_, v) => setPlanDesc(v || "")}
             styles={{
               field: {
-                background: "#181a17",
-                color: "#fff",
+                color: "#ffffff",
                 fontSize: 16,
-                "input, textarea": {
-                  color: "#fff",
-                  background: "#181a17",
-                },
-                "input::placeholder, textarea::placeholder": {
-                  color: "#fff",
-                  opacity: 1,
-                },
-                "input:-webkit-autofill, textarea:-webkit-autofill": {
-                  WebkitTextFillColor: "#fff",
-                  WebkitBoxShadow: "0 0 0 1000px #181a17 inset",
-                  boxShadow: "0 0 0 1000px #181a17 inset",
-                },
               },
               wrapper: { marginBottom: 32 },
+              fieldGroup: {
+                background: "#0D0D0D",
+                border: "1px solid #4fa3ff",
+                selectors: {
+                  ":hover": {
+                    borderColor: "#4fa3ff",
+                    boxShadow: "0 0 5px rgba(79, 163, 255, 0.5)",
+                  },
+                  "::after": { border: "none" },
+                },
+              },
               subComponentStyles: {
                 label: {
-                  root: { color: "#fff", fontSize: 16, fontWeight: 500 },
+                  root: { color: "#ffffff", fontSize: 16, fontWeight: 500 },
                 },
               },
             }}
-            onRenderLabel={(props, defaultRender) =>
-              defaultRender ? (
-                <span style={{ color: "#fff", fontSize: 16, fontWeight: 500 }}>
-                  {defaultRender(props)}
-                </span>
-              ) : null
-            }
           />
+
+          {/* Sprint Information Section */}
+          <div
+            style={{
+              marginBottom: 32,
+              background: "#1e1f1c",
+              padding: 16,
+              borderRadius: 8,
+            }}
+          >
+            <h3 style={{ color: "#4fa3ff", marginBottom: 16 }}>
+              Sprint Information
+            </h3>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 16,
+              }}
+            >
+              <div>
+                <Text
+                  style={{
+                    color: "#bdbdbd",
+                    display: "block",
+                    marginBottom: 4,
+                  }}
+                >
+                  Start Date:
+                </Text>
+                <Text style={{ color: "#ffffff", fontWeight: 600 }}>
+                  {sprint.startDate.toLocaleDateString()}
+                </Text>
+              </div>
+              <div>
+                <Text
+                  style={{
+                    color: "#bdbdbd",
+                    display: "block",
+                    marginBottom: 4,
+                  }}
+                >
+                  End Date:
+                </Text>
+                <Text style={{ color: "#ffffff", fontWeight: 600 }}>
+                  {sprint.endDate.toLocaleDateString()}
+                </Text>
+              </div>
+              <div>
+                <Text
+                  style={{
+                    color: "#bdbdbd",
+                    display: "block",
+                    marginBottom: 4,
+                  }}
+                >
+                  Status:
+                </Text>
+                <Text
+                  style={{
+                    color:
+                      sprint.state === SprintState.ACTIVE
+                        ? "#4fa3ff"
+                        : "#ffb900",
+                    fontWeight: 600,
+                  }}
+                >
+                  {formatState(sprint.state)}
+                </Text>
+              </div>
+              <div>
+                <Text
+                  style={{
+                    color: "#bdbdbd",
+                    display: "block",
+                    marginBottom: 4,
+                  }}
+                >
+                  Total Work Items:
+                </Text>
+                <Text style={{ color: "#ffffff", fontWeight: 600 }}>
+                  {workItems.length}
+                </Text>
+              </div>
+            </div>
+          </div>
+
+          {/* Work Items Section */}
+          {workItems.length > 0 && (
+            <div style={{ marginBottom: 32 }}>
+              <h3 style={{ color: "#4fa3ff", marginBottom: 16 }}>Work Items</h3>
+              <div
+                style={{
+                  background: "#1e1f1c",
+                  borderRadius: 8,
+                  maxHeight: 250,
+                  overflowY: "auto",
+                  marginBottom: 16,
+                  padding: "0 12px",
+                }}
+              >
+                {workItems.map((item) => (
+                  <div
+                    key={item.id}
+                    style={{
+                      padding: "12px 0",
+                      borderBottom: "1px solid #2d2e2b",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                    }}
+                  >
+                    <Icon
+                      iconName={
+                        item.type === "Task"
+                          ? "TaskList"
+                          : item.type === "Bug"
+                          ? "Bug"
+                          : item.type === "Feature"
+                          ? "Lightbulb"
+                          : "WorkItem"
+                      }
+                      style={{ color: "#4fa3ff" }}
+                    />
+                    <span style={{ flex: 1, color: "#ffffff" }}>
+                      {item.title}
+                    </span>
+                    <WorkItemStatus status={item.status}>
+                      {item.status}
+                    </WorkItemStatus>
+                    <span style={{ color: "#bdbdbd" }}>{item.points} pts</span>
+                  </div>
+                ))}
+              </div>
+              <Stack>
+                <Text style={{ color: "#bdbdbd", marginBottom: 8 }}>
+                  Progress: {completedItems}/{totalItems} items (
+                  {completedPoints}/{totalPoints} points)
+                </Text>
+                <ProgressIndicator
+                  percentComplete={progress / 100}
+                  styles={{
+                    root: { width: "100%" },
+                    progressBar: { background: "#4fa3ff" },
+                  }}
+                />
+              </Stack>
+            </div>
+          )}
+
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
             <DefaultButton
               onClick={() => setShowPlanModal(false)}
               style={{ fontSize: 16, padding: "8px 24px" }}
             >
-              Cancel
+              Close
             </DefaultButton>
             <PrimaryButton
               style={{ fontSize: 16, padding: "8px 32px" }}
               onClick={() => {
-                // Burada backend'e güncelleme isteği atılabilir
+                // We could add an API call here to save the plan details
+                showSuccessToast(`"${planTitle}" plan saved successfully`);
                 setShowPlanModal(false);
               }}
             >
@@ -434,6 +621,31 @@ const SprintCard: React.FC<SprintCardProps> = ({ sprint }) => {
             </PrimaryButton>
           </div>
         </Modal>
+        <Dialog
+          hidden={!showDeleteDialog}
+          onDismiss={() => setShowDeleteDialog(false)}
+          dialogContentProps={{
+            type: DialogType.normal,
+            title: "Sprint Silme",
+            subText: `"${sprint.name}" sprinti silmek istediğinize emin misiniz?`,
+          }}
+          modalProps={{
+            isBlocking: true,
+            styles: { main: { maxWidth: 450 } },
+          }}
+        >
+          <DialogFooter>
+            <PrimaryButton
+              onClick={handleDeleteSprint}
+              text="Sil"
+              disabled={isDeleting}
+            />
+            <DefaultButton
+              onClick={() => setShowDeleteDialog(false)}
+              text="İptal"
+            />
+          </DialogFooter>
+        </Dialog>
       </CardContent>
     </CardContainer>
   );

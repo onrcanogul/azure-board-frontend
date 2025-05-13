@@ -1,5 +1,6 @@
 import { Right, Section, SectionTitle, SectionBox } from "./ModalStyles";
 import PriorityDropdown from "./PriorityDropdown";
+import { WorkItemType } from "./WorkItemModal";
 
 interface ModalRightProps {
   priority: number;
@@ -22,6 +23,7 @@ interface ModalRightProps {
   setBusinessValue?: (businessValue: number) => void;
   editBusinessValue?: boolean;
   setEditBusinessValue?: (edit: boolean) => void;
+  workItemType?: WorkItemType;
 }
 
 const ModalRight = ({
@@ -45,7 +47,14 @@ const ModalRight = ({
   setBusinessValue = () => {},
   editBusinessValue = false,
   setEditBusinessValue = () => {},
+  workItemType = WorkItemType.PBI,
 }: ModalRightProps) => {
+  // Determine if we should show story points and business value based on the work item type
+  const showStoryPoints =
+    workItemType === WorkItemType.PBI || workItemType === WorkItemType.BUG;
+  const showBusinessValue =
+    workItemType === WorkItemType.PBI || workItemType === WorkItemType.BUG;
+
   return (
     <Right>
       <Section>
@@ -67,66 +76,70 @@ const ModalRight = ({
           </SectionBox>
         )}
 
-        <SectionBox>
-          {editStoryPoint ? (
-            <input
-              type="number"
-              min="0"
-              max="100"
-              value={storyPoint}
-              autoFocus
-              onChange={(e) => setStoryPoint(Number(e.target.value))}
-              onBlur={() => setEditStoryPoint(false)}
-              style={{
-                background: "#232422",
-                color: "#fff",
-                border: "1px solid #444",
-                borderRadius: 3,
-                fontSize: 15,
-                padding: "4px 8px",
-                width: "100%",
-              }}
-            />
-          ) : (
-            <span
-              onClick={() => setEditStoryPoint(true)}
-              style={{ cursor: "pointer", display: "block" }}
-            >
-              Story Point: <b>{storyPoint > 0 ? storyPoint : "Not set"}</b>
-            </span>
-          )}
-        </SectionBox>
+        {showStoryPoints && (
+          <SectionBox>
+            {editStoryPoint ? (
+              <input
+                type="number"
+                min="0"
+                max="100"
+                value={storyPoint}
+                autoFocus
+                onChange={(e) => setStoryPoint(Number(e.target.value))}
+                onBlur={() => setEditStoryPoint(false)}
+                style={{
+                  background: "#232422",
+                  color: "#fff",
+                  border: "1px solid #444",
+                  borderRadius: 3,
+                  fontSize: 15,
+                  padding: "4px 8px",
+                  width: "100%",
+                }}
+              />
+            ) : (
+              <span
+                onClick={() => setEditStoryPoint(true)}
+                style={{ cursor: "pointer", display: "block" }}
+              >
+                Story Point: <b>{storyPoint > 0 ? storyPoint : "Not set"}</b>
+              </span>
+            )}
+          </SectionBox>
+        )}
 
-        <SectionBox>
-          {editBusinessValue ? (
-            <input
-              type="number"
-              min="0"
-              max="10"
-              value={businessValue}
-              autoFocus
-              onChange={(e) => setBusinessValue(Number(e.target.value))}
-              onBlur={() => setEditBusinessValue(false)}
-              style={{
-                background: "#232422",
-                color: "#fff",
-                border: "1px solid #444",
-                borderRadius: 3,
-                fontSize: 15,
-                padding: "4px 8px",
-                width: "100%",
-              }}
-            />
-          ) : (
-            <span
-              onClick={() => setEditBusinessValue(true)}
-              style={{ cursor: "pointer", display: "block" }}
-            >
-              Business Value:{" "}
-              <b>{businessValue > 0 ? businessValue : "Not set"}</b>
-            </span>
-          )}
-        </SectionBox>
+        {showBusinessValue && (
+          <SectionBox>
+            {editBusinessValue ? (
+              <input
+                type="number"
+                min="0"
+                max="10"
+                value={businessValue}
+                autoFocus
+                onChange={(e) => setBusinessValue(Number(e.target.value))}
+                onBlur={() => setEditBusinessValue(false)}
+                style={{
+                  background: "#232422",
+                  color: "#fff",
+                  border: "1px solid #444",
+                  borderRadius: 3,
+                  fontSize: 15,
+                  padding: "4px 8px",
+                  width: "100%",
+                }}
+              />
+            ) : (
+              <span
+                onClick={() => setEditBusinessValue(true)}
+                style={{ cursor: "pointer", display: "block" }}
+              >
+                Business Value:{" "}
+                <b>{businessValue > 0 ? businessValue : "Not set"}</b>
+              </span>
+            )}
+          </SectionBox>
+        )}
 
         <SectionBox>
           {editStartDate ? (
@@ -150,7 +163,9 @@ const ModalRight = ({
               onClick={() => setEditStartDate(true)}
               style={{ cursor: "pointer" }}
             >
-              Start Date:{" "}
+              {workItemType === WorkItemType.EPIC
+                ? "Start Date:"
+                : "Started Date:"}{" "}
               <span style={{ color: "#888" }}>
                 {startDate
                   ? new Date(startDate).toLocaleDateString()
@@ -181,7 +196,9 @@ const ModalRight = ({
               onClick={() => setEditTargetDate(true)}
               style={{ cursor: "pointer" }}
             >
-              Target Date:{" "}
+              {workItemType === WorkItemType.EPIC
+                ? "End Date:"
+                : "Target Date:"}{" "}
               <span style={{ color: "#888" }}>
                 {targetDate
                   ? new Date(targetDate).toLocaleDateString()
@@ -202,7 +219,12 @@ const ModalRight = ({
               fontSize: 13,
             }}
           >
-            Add an existing work item as a parent
+            {workItemType === WorkItemType.FEATURE
+              ? "Link to an Epic"
+              : workItemType === WorkItemType.PBI ||
+                workItemType === WorkItemType.BUG
+              ? "Link to a Feature"
+              : "Add an existing work item as a parent"}
           </a>
         </SectionBox>
       </Section>

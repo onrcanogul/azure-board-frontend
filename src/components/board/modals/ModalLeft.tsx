@@ -9,6 +9,18 @@ import {
   Avatar,
   CommentInput,
 } from "./ModalStyles";
+import styled from "@emotion/styled";
+
+// Create a styled section specifically for the Discussion section
+const DiscussionSection = styled(Section)`
+  margin-bottom: 120px; // Add extra margin at the bottom for scrolling
+  padding-bottom: 50px;
+`;
+
+// Style for the comment box
+const StyledCommentBox = styled(CommentBox)`
+  margin-bottom: 20px;
+`;
 
 interface ModalLeftProps {
   description: string;
@@ -77,7 +89,7 @@ const ModalLeft = ({
   const containerStyle = {
     width: "100%",
     maxWidth: "100%",
-    overflow: "hidden",
+    overflow: "visible",
   };
 
   const textareaStyle = {
@@ -162,13 +174,13 @@ const ModalLeft = ({
           </SectionBox>
         )}
       </Section>
-      <Section>
+      <DiscussionSection>
         <SectionTitle>Discussion</SectionTitle>
-        <CommentBox>
+        <StyledCommentBox>
           <Avatar>OO</Avatar>
           <CommentInput placeholder="Add a comment. Use # to link a work item, @ to mention a person, or ! to link a pull request." />
-        </CommentBox>
-      </Section>
+        </StyledCommentBox>
+      </DiscussionSection>
     </Left>
   );
 };

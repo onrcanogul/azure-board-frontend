@@ -1,6 +1,7 @@
 import { TextField, Dropdown } from "@fluentui/react";
 import type { IDropdownOption } from "@fluentui/react";
 import styled from "@emotion/styled";
+import { SprintState } from "../../domain/models/sprint";
 
 const FilterContainer = styled.div`
   display: flex;
@@ -26,20 +27,35 @@ const FilterField = styled.div`
   }
 `;
 
+interface FilterState {
+  searchText: string;
+  statusFilter: SprintState | "all";
+}
+
+interface SprintFilterBarProps {
+  filters: FilterState;
+  onFilterChange: (newFilters: Partial<FilterState>) => void;
+}
+
 const statusOptions: IDropdownOption[] = [
-  { key: "all", text: "All Sprints" },
-  { key: "PLANNED", text: "Planned" },
-  { key: "ACTIVE", text: "Active" },
-  { key: "COMPLETED", text: "Completed" },
-  { key: "CANCELLED", text: "Cancelled" },
+  { key: "all", text: "Tüm Sprintler" },
+  { key: SprintState.INACTIVE, text: "Inaktif" },
+  { key: SprintState.ACTIVE, text: "Aktif" },
 ];
 
-const SprintFilterBar = () => {
+const SprintFilterBar: React.FC<SprintFilterBarProps> = ({
+  filters,
+  onFilterChange,
+}) => {
   return (
     <FilterContainer>
       <FilterField>
         <TextField
-          placeholder="Search sprints..."
+          placeholder="Sprint ara..."
+          value={filters.searchText}
+          onChange={(_, newValue) =>
+            onFilterChange({ searchText: newValue || "" })
+          }
           styles={{
             root: { width: "100%" },
             field: { backgroundColor: "#1e1f1c", color: "#ffffff" },
@@ -49,8 +65,13 @@ const SprintFilterBar = () => {
       </FilterField>
       <FilterField>
         <Dropdown
-          placeholder="Select status"
+          placeholder="Durum seçin"
+          selectedKey={filters.statusFilter}
           options={statusOptions}
+          onChange={(_, option) =>
+            option &&
+            onFilterChange({ statusFilter: option.key as SprintState | "all" })
+          }
           styles={{
             root: { width: "100%" },
             dropdown: { backgroundColor: "#1e1f1c", color: "#ffffff" },

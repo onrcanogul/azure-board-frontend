@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   Stack,
   MessageBar,
@@ -10,6 +10,8 @@ import styled from "@emotion/styled";
 import SprintCard from "./SprintCard";
 import { SprintState } from "../../domain/models/sprint";
 import type { Sprint } from "../../domain/models/sprint";
+import { SprintService } from "../../services/sprintService";
+import { showErrorToast } from "../../components/toast/ToastManager";
 
 const ListContainer = styled.div`
   display: flex;
@@ -24,208 +26,130 @@ const CenteredContent = styled.div`
   padding: 32px;
 `;
 
-// Mock sprint data
-const mockSprints = [
-  {
-    id: "1",
-    name: "Sprint 1",
-    startDate: "2023-11-01",
-    endDate: "2023-11-15",
-    goal: "Complete user authentication flow",
-    state: SprintState.COMPLETED,
-    projectId: "project-1",
-    teamId: "team-1",
-  },
-  {
-    id: "2",
-    name: "Sprint 2",
-    startDate: "2023-11-16",
-    endDate: "2023-11-30",
-    goal: "Implement search functionality",
-    state: SprintState.ACTIVE,
-    projectId: "project-1",
-    teamId: "team-1",
-  },
-  {
-    id: "3",
-    name: "Sprint 3",
-    startDate: "2023-12-01",
-    endDate: "2023-12-15",
-    goal: "Add reporting features",
-    state: SprintState.PLANNED,
-    projectId: "project-1",
-    teamId: "team-1",
-  },
-];
-
-// Mock work items structure to supplement the Sprint data
-const getWorkItemsForSprint = (sprintId: string) => {
-  // This is a temporary function until we have the real work items API
-  // In a real app, this would be fetched from the API
-  const mockItems = {
-    "1": [
-      {
-        id: "101",
-        title: "Implement user authentication",
-        type: "Task",
-        status: "Done",
-        points: 5,
-      },
-      {
-        id: "102",
-        title: "Fix login page bug",
-        type: "Bug",
-        status: "Done",
-        points: 3,
-      },
-      {
-        id: "103",
-        title: "Add user profile feature",
-        type: "Feature",
-        status: "In Progress",
-        points: 8,
-      },
-      {
-        id: "104",
-        title: "Update documentation",
-        type: "Task",
-        status: "To Do",
-        points: 4,
-      },
-    ],
-    "2": [
-      {
-        id: "201",
-        title: "Implement search functionality",
-        type: "Feature",
-        status: "To Do",
-        points: 8,
-      },
-      {
-        id: "202",
-        title: "Add filtering options",
-        type: "Task",
-        status: "To Do",
-        points: 5,
-      },
-      {
-        id: "203",
-        title: "Create API endpoints",
-        type: "Task",
-        status: "To Do",
-        points: 12,
-      },
-    ],
-    "3": [
-      {
-        id: "301",
-        title: "Design reporting dashboard",
-        type: "Task",
-        status: "To Do",
-        points: 8,
-      },
-      {
-        id: "302",
-        title: "Create charts and graphs",
-        type: "Feature",
-        status: "To Do",
-        points: 13,
-      },
-    ],
-  };
-
-  return mockItems[sprintId as keyof typeof mockItems] || [];
-};
-
 // Extend the Sprint type with UI-specific properties
-interface EnhancedSprint {
-  id: string;
-  name: string;
-  startDate: Date;
-  endDate: Date;
-  goal: string;
-  state: SprintState;
-  projectId: string;
-  teamId: string;
+interface EnhancedSprint extends Sprint {
   workItems: Array<{
-    id: string;
+    id: number;
     title: string;
-    type: string;
-    status: string;
+    type: "Task" | "Bug" | "Feature" | "Epic";
+    status: "To Do" | "In Progress" | "Done";
     points: number;
   }>;
   completedPoints: number;
   totalPoints: number;
   status: "active" | "future" | "completed"; // UI status
-  isDeleted?: boolean;
 }
 
-const SprintList = () => {
+interface FilterState {
+  searchText: string;
+  statusFilter: SprintState | "all";
+}
+
+interface SprintListProps {
+  filters?: FilterState;
+}
+
+const SprintList: React.FC<SprintListProps> = ({
+  filters = { searchText: "", statusFilter: "all" },
+}) => {
   const [sprints, setSprints] = useState<EnhancedSprint[]>([]);
+  const [allSprints, setAllSprints] = useState<EnhancedSprint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const sprintService = new SprintService();
 
   useEffect(() => {
-    // Simulate API call delay
-    const fetchSprints = () => {
+    const fetchSprints = async () => {
       setLoading(true);
       setError(null);
 
-      setTimeout(() => {
-        try {
-          // Enhance the mock sprints with UI data
-          const enhancedSprints = mockSprints.map((sprint) => {
-            const workItems = getWorkItemsForSprint(sprint.id);
-            const totalPoints = workItems.reduce(
-              (sum, item) => sum + item.points,
-              0
-            );
-            const completedPoints = workItems
-              .filter((item) => item.status === "Done")
-              .reduce((sum, item) => sum + item.points, 0);
+      try {
+        // Get the selected team ID from localStorage
+        const teamId = localStorage.getItem("selectedTeamId");
 
-            // Map backend state to UI status
-            let status: "active" | "future" | "completed";
-            switch (sprint.state) {
-              case SprintState.ACTIVE:
-                status = "active";
-                break;
-              case SprintState.COMPLETED:
-                status = "completed";
-                break;
-              default:
-                // PLANNED or any other state is considered future
-                status = "future";
-            }
-
-            return {
-              ...sprint,
-              startDate: new Date(sprint.startDate),
-              endDate: new Date(sprint.endDate),
-              workItems,
-              completedPoints,
-              totalPoints,
-              status,
-            };
-          });
-
-          setSprints(enhancedSprints);
-          setLoading(false);
-        } catch (err) {
-          console.error("Failed to process sprint data:", err);
-          setError("An error occurred while processing sprint data.");
-          setLoading(false);
+        if (!teamId) {
+          const errorMsg = "Takım seçilmedi. Lütfen bir takım seçin.";
+          showErrorToast(errorMsg);
+          throw new Error(errorMsg);
         }
-      }, 1000); // 1 second delay to simulate network request
+
+        // Fetch sprints by team ID
+        const backendSprints = await sprintService.getByTeam(teamId);
+        console.log(`Fetched sprints for team ${teamId}:`, backendSprints);
+
+        // Enhance the sprints with UI data
+        const enhancedSprints = backendSprints.map((sprint) => {
+          // Map backend state to UI status
+          let status: "active" | "future" | "completed";
+          switch (sprint.state) {
+            case SprintState.ACTIVE:
+              status = "active";
+              break;
+            case SprintState.INACTIVE:
+              status = "future";
+              break;
+            default:
+              status = "future";
+          }
+
+          return {
+            ...sprint,
+            startDate: new Date(sprint.startDate),
+            endDate: new Date(sprint.endDate),
+            workItems: [], // Initialize with empty array, will be fetched separately when needed
+            completedPoints: 0,
+            totalPoints: 0,
+            status,
+          };
+        });
+
+        setAllSprints(enhancedSprints);
+        setLoading(false);
+      } catch (err) {
+        console.error("Failed to fetch sprint data:", err);
+        const errorMessage =
+          err instanceof Error ? err.message : "Bilinmeyen bir hata oluştu";
+        const errorMsg =
+          "Sprintler yüklenirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.";
+        setError(errorMsg);
+        showErrorToast(`Sprint verisi alınamadı: ${errorMessage}`);
+        setLoading(false);
+      }
     };
 
     fetchSprints();
-  }, []);
+  }, [filters]);
+
+  // Apply filters to sprints
+  useEffect(() => {
+    if (allSprints.length === 0) return;
+
+    let filteredSprints = [...allSprints];
+
+    // Apply status filter
+    if (filters.statusFilter !== "all") {
+      filteredSprints = filteredSprints.filter(
+        (sprint) => sprint.state === filters.statusFilter
+      );
+    }
+
+    // Apply search text filter
+    if (filters.searchText) {
+      const searchTerm = filters.searchText.toLowerCase();
+      filteredSprints = filteredSprints.filter(
+        (sprint) =>
+          sprint.name.toLowerCase().includes(searchTerm) ||
+          (sprint.goal && sprint.goal.toLowerCase().includes(searchTerm))
+      );
+    }
+
+    setSprints(filteredSprints);
+  }, [allSprints, filters.statusFilter, filters.searchText]);
 
   if (loading) {
     return (
       <CenteredContent>
-        <Spinner size={SpinnerSize.large} label="Loading sprints..." />
+        <Spinner size={SpinnerSize.large} label="Sprintler yükleniyor..." />
       </CenteredContent>
     );
   }
@@ -239,7 +163,8 @@ const SprintList = () => {
   if (sprints.length === 0) {
     return (
       <MessageBar messageBarType={MessageBarType.info}>
-        No sprints found. Create a new sprint to get started.
+        Seçilen filtrelerle eşleşen sprint bulunamadı. Lütfen filtrelerinizi
+        değiştirin veya yeni bir sprint oluşturun.
       </MessageBar>
     );
   }
@@ -247,7 +172,7 @@ const SprintList = () => {
   return (
     <ListContainer>
       {sprints.map((sprint) => (
-        <SprintCard key={sprint.id} sprint={sprint as any} />
+        <SprintCard key={sprint.id} sprint={sprint} />
       ))}
     </ListContainer>
   );

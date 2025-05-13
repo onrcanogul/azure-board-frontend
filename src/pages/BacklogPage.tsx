@@ -1,4 +1,4 @@
-import Backlog from "../components/backlog/Backlog";
+import BacklogWithRealTimeUpdates from "../components/backlog/BacklogWithRealTimeUpdates";
 import ResponsiveLayout from "../components/layout/ResponsiveLayout";
 import { useLocation } from "react-router-dom";
 import { useEffect } from "react";
@@ -12,7 +12,7 @@ const BacklogPage = () => {
 
   return (
     <ResponsiveLayout title="Product Backlog - OO Team">
-      <Backlog />
+      <BacklogWithRealTimeUpdates />
     </ResponsiveLayout>
   );
 };

@@ -10,7 +10,51 @@ import {
 import ModalHeader from "./ModalHeader";
 import ModalLeft from "./ModalLeft";
 import ModalRight from "./ModalRight";
-import workItemService from "../../../services/workItemService";
+import workItemService, {
+  WorkItemType as ServiceWorkItemType,
+} from "../../../services/workItemService";
+import pbiService from "../../../services/pbiService";
+import { BugService } from "../../../services/bugService";
+import { FeatureService } from "../../../services/featureService";
+import { EpicService } from "../../../services/epicService";
+import { BugStatus } from "../../../domain/models/bug";
+import { PbiState } from "../../../domain/models/productBacklogItem";
+import { Dropdown, type IDropdownOption } from "@fluentui/react";
+import styled from "@emotion/styled";
+
+// İş öğesi türlerini tanımlayan enum
+export enum WorkItemType {
+  PBI = "PBI",
+  BUG = "Bug",
+  EPIC = "Epic",
+  FEATURE = "Feature",
+}
+
+const TypeSelector = styled.div`
+  margin-bottom: 16px;
+  margin-top: 8px;
+
+  .ms-Dropdown-title {
+    background-color: #232422;
+    color: #fff;
+    border-color: #444;
+  }
+
+  .ms-Dropdown-caretDown {
+    color: #fff;
+  }
+
+  .ms-Dropdown:hover .ms-Dropdown-title {
+    border-color: #4fa3ff;
+  }
+`;
+
+const workItemTypeOptions: IDropdownOption[] = [
+  { key: WorkItemType.PBI, text: "Product Backlog Item" },
+  { key: WorkItemType.BUG, text: "Bug" },
+  { key: WorkItemType.EPIC, text: "Epic" },
+  { key: WorkItemType.FEATURE, text: "Feature" },
+];
 
 interface WorkItemModalProps {
   item: WorkItem;
@@ -19,6 +63,10 @@ interface WorkItemModalProps {
   isNew?: boolean;
   onSave?: (item: WorkItem) => Promise<void>;
 }
+
+const bugServiceInstance = new BugService();
+const featureServiceInstance = new FeatureService();
+const epicServiceInstance = new EpicService();
 
 const WorkItemModal = ({
   item,
@@ -62,6 +110,11 @@ const WorkItemModal = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // İş öğesi türü state'i
+  const [workItemType, setWorkItemType] = useState<WorkItemType>(
+    WorkItemType.PBI
+  );
+
   // Update state from item prop whenever it changes
   useEffect(() => {
     if (item) {
@@ -80,6 +133,17 @@ const WorkItemModal = ({
       setTagIds(item.tagIds || []);
       setStoryPoint(item.storyPoint || 0);
       setBusinessValue(item.businessValue || 0);
+
+      // İş öğesi türünü mevcut veriden belirleme
+      if (item.type === ServiceWorkItemType.BUG) {
+        setWorkItemType(WorkItemType.BUG);
+      } else if (item.type === ServiceWorkItemType.EPIC) {
+        setWorkItemType(WorkItemType.EPIC);
+      } else if (item.type === ServiceWorkItemType.FEATURE) {
+        setWorkItemType(WorkItemType.FEATURE);
+      } else {
+        setWorkItemType(WorkItemType.PBI);
+      }
     }
   }, [item]);
 
@@ -94,49 +158,209 @@ const WorkItemModal = ({
       const currentAssignedUserId =
         assignedUserId || "a8e4ed53-b671-4f21-a3ee-fc87f1299a11";
 
-      // Create updated work item from the current state
-      const updatedItem: WorkItem = {
-        ...item,
+      // Temel iş öğesi verileri
+      const commonData = {
         description,
-        functionalDescription,
-        technicalDescription,
         priority,
-        assignedUserId: currentAssignedUserId,
-        state,
         areaId,
-        sprintId,
-        featureId,
-        startedDate,
-        dueDate,
-        completedDate,
-        tagIds,
-        storyPoint,
-        businessValue,
       };
 
-      console.log("Saving work item:", updatedItem);
+      // Seçilen iş öğesi türüne göre farklı işlemler
+      switch (workItemType) {
+        case WorkItemType.PBI:
+          if (isNew) {
+            await pbiService.create({
+              ...commonData,
+              sprintId,
+              featureId,
+              assignedUserId: currentAssignedUserId,
+              functionalDescription,
+              technicalDescription,
+              state: (state as PbiState) || PbiState.NEW,
+              storyPoint,
+              businessValue,
+              dueDate: dueDate ? new Date(dueDate) : new Date(),
+              startedDate: startedDate ? new Date(startedDate) : new Date(),
+              completedDate: completedDate
+                ? new Date(completedDate)
+                : new Date(),
+              tagIds: new Set(tagIds),
+            });
+          } else {
+            await pbiService.update({
+              id: item.id,
+              ...commonData,
+              sprintId,
+              featureId,
+              assignedUserId: currentAssignedUserId,
+              functionalDescription,
+              technicalDescription,
+              state: (state as PbiState) || PbiState.NEW,
+              storyPoint,
+              businessValue,
+              dueDate: dueDate ? new Date(dueDate) : new Date(),
+              startedDate: startedDate ? new Date(startedDate) : new Date(),
+              completedDate: completedDate
+                ? new Date(completedDate)
+                : new Date(),
+              tagIds: new Set(tagIds),
+            });
+          }
+          break;
 
-      // If onSave prop is provided, call it
-      if (onSave) {
-        await onSave(updatedItem);
-      } else {
-        // Use workItemService based on isNew flag
-        if (isNew) {
-          console.log("Creating new PBI work item");
-          await workItemService.create(updatedItem);
-        } else {
-          console.log("Updating existing work item");
-          await workItemService.update(updatedItem);
-        }
+        case WorkItemType.BUG:
+          if (isNew) {
+            await bugServiceInstance.create({
+              ...commonData,
+              sprintId,
+              featureId,
+              assignedUserId: currentAssignedUserId,
+              functionalDescription,
+              technicalDescription,
+              status: (state as BugStatus) || BugStatus.NEW,
+              storyPoint,
+              businessValue,
+              dueDate: dueDate ? new Date(dueDate) : new Date(),
+              startedDate: startedDate ? new Date(startedDate) : new Date(),
+              completedDate: completedDate
+                ? new Date(completedDate)
+                : new Date(),
+              isNoBug: false,
+              tagIds: new Set(tagIds),
+            });
+          } else {
+            await bugServiceInstance.update({
+              id: item.id,
+              ...commonData,
+              sprintId,
+              featureId,
+              assignedUserId: currentAssignedUserId,
+              functionalDescription,
+              technicalDescription,
+              status: (state as BugStatus) || BugStatus.NEW,
+              storyPoint,
+              businessValue,
+              dueDate: dueDate ? new Date(dueDate) : new Date(),
+              startedDate: startedDate ? new Date(startedDate) : new Date(),
+              completedDate: completedDate
+                ? new Date(completedDate)
+                : new Date(),
+              isNoBug: false,
+              tagIds: new Set(tagIds),
+            });
+          }
+          break;
+
+        case WorkItemType.EPIC:
+          if (isNew) {
+            await epicServiceInstance.create({
+              ...commonData,
+              title: description,
+              teamId: currentAssignedUserId,
+              startDate: startedDate ? new Date(startedDate) : new Date(),
+              endDate: dueDate ? new Date(dueDate) : new Date(),
+              isDeleted: false,
+            });
+          } else {
+            await epicServiceInstance.update({
+              id: item.id,
+              ...commonData,
+              title: description,
+              teamId: currentAssignedUserId,
+              startDate: startedDate ? new Date(startedDate) : new Date(),
+              endDate: dueDate ? new Date(dueDate) : new Date(),
+              createdDate: new Date(),
+              updatedDate: new Date(),
+              isDeleted: false,
+            });
+          }
+          break;
+
+        case WorkItemType.FEATURE:
+          if (isNew) {
+            await featureServiceInstance.create({
+              ...commonData,
+              title: description,
+              epicId: featureId || "",
+              isCompleted: false,
+              isDeleted: false,
+            });
+          } else {
+            await featureServiceInstance.update({
+              id: item.id,
+              ...commonData,
+              title: description,
+              epicId: featureId || "",
+              createdDate: new Date(),
+              updatedDate: new Date(),
+              isCompleted: false,
+              isDeleted: false,
+            });
+          }
+          break;
+
+        default:
+          // Varsayılan olarak workItemService'i kullan
+          const updatedItem: WorkItem = {
+            ...item,
+            description,
+            functionalDescription,
+            technicalDescription,
+            priority,
+            assignedUserId: currentAssignedUserId,
+            state,
+            areaId,
+            sprintId,
+            featureId,
+            startedDate,
+            dueDate,
+            completedDate,
+            tagIds,
+            storyPoint,
+            businessValue,
+            type: mapWorkItemTypeToService(workItemType),
+            isDeleted: false,
+          };
+
+          if (onSave) {
+            await onSave(updatedItem);
+          } else if (isNew) {
+            await workItemService.create(updatedItem);
+          } else {
+            await workItemService.update(updatedItem);
+          }
       }
 
+      console.log(`${workItemType} tipi iş öğesi kaydedildi`);
       // Close modal after successful save
       onClose();
     } catch (error) {
       console.error("Error saving work item:", error);
-      setError("İş öğesi kaydedilemedi. Lütfen tekrar deneyin.");
+      setError(
+        `İş öğesi kaydedilemedi: ${
+          error instanceof Error ? error.message : "Bilinmeyen hata"
+        }`
+      );
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Helper function to map WorkItemType to ServiceWorkItemType
+  const mapWorkItemTypeToService = (
+    type: WorkItemType
+  ): ServiceWorkItemType => {
+    switch (type) {
+      case WorkItemType.PBI:
+        return ServiceWorkItemType.PBI;
+      case WorkItemType.BUG:
+        return ServiceWorkItemType.BUG;
+      case WorkItemType.EPIC:
+        return ServiceWorkItemType.EPIC;
+      case WorkItemType.FEATURE:
+        return ServiceWorkItemType.FEATURE;
+      default:
+        return ServiceWorkItemType.PBI;
     }
   };
 
@@ -168,6 +392,9 @@ const WorkItemModal = ({
           setAssignedUser={setAssignedUserId}
           editAssignedUser={editAssignedUserId}
           setEditAssignedUser={setEditAssignedUserId}
+          workItemType={workItemType}
+          setWorkItemType={setWorkItemType}
+          workItemTypeOptions={workItemTypeOptions}
         />
 
         <ModalBody>
@@ -205,6 +432,7 @@ const WorkItemModal = ({
             setBusinessValue={setBusinessValue}
             editBusinessValue={editBusinessValue}
             setEditBusinessValue={setEditBusinessValue}
+            workItemType={workItemType}
           />
         </ModalBody>
 

@@ -13,29 +13,41 @@ export const Overlay = styled.div`
   align-items: flex-start;
   justify-content: center;
   overflow-y: auto;
+  padding: 0;
 `;
 
 export const Modal = styled.div`
   background: #181a17;
   color: #fff;
   border-radius: 6px;
-  margin: 32px 0 32px 0;
-  width: 1100px;
-  max-width: 90vw;
-  min-height: 700px;
-  max-height: 85vh;
+  margin: 16px 0;
+  width: 95vw;
+  max-width: 1100px;
+  min-height: 500px;
+  max-height: 90vh;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
   position: relative;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  @media (min-width: 768px) {
+    margin: 24px 0;
+    min-height: 600px;
+  }
+
+  @media (min-width: 1024px) {
+    margin: 32px 0;
+    min-height: 700px;
+  }
 `;
 
 export const ModalHeader = styled.div`
   position: sticky;
   top: 0;
   background: #181a17;
-  z-index: 2;
+  z-index: 10;
   display: flex;
   flex-direction: column;
   border-bottom: 1px solid #232422;
@@ -45,8 +57,18 @@ export const ModalHeader = styled.div`
 export const ModalHeaderTop = styled.div`
   display: flex;
   align-items: center;
-  padding: 18px 28px 0 28px;
+  padding: 14px 16px 0 16px;
   min-height: 48px;
+  flex-wrap: wrap;
+
+  @media (min-width: 768px) {
+    padding: 16px 22px 0 22px;
+    flex-wrap: nowrap;
+  }
+
+  @media (min-width: 1024px) {
+    padding: 18px 28px 0 28px;
+  }
 `;
 
 export const ModalHeaderActions = styled.div`
@@ -86,8 +108,19 @@ export const ModalClose = styled(DefaultButton)`
 export const ModalHeaderInfo = styled.div`
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 28px 0 28px;
+  gap: 8px;
+  padding: 10px 16px 0 16px;
+  flex-wrap: wrap;
+
+  @media (min-width: 768px) {
+    padding: 10px 22px 0 22px;
+    gap: 10px;
+  }
+
+  @media (min-width: 1024px) {
+    padding: 10px 28px 0 28px;
+    gap: 12px;
+  }
 `;
 
 export const TypeIcon = styled.div`
@@ -105,35 +138,72 @@ export const ModalId = styled.span`
   color: #ffb900;
   font-weight: 600;
   margin-right: 8px;
-  font-size: 15px;
+  font-size: 13px;
+
+  @media (min-width: 768px) {
+    font-size: 14px;
+  }
+
+  @media (min-width: 1024px) {
+    font-size: 15px;
+  }
 `;
 
 export const ModalTitle = styled.input`
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 600;
   background: transparent;
   color: #fff;
   border: none;
   outline: none;
   flex: 1;
+  width: 100%;
+
+  @media (min-width: 768px) {
+    font-size: 18px;
+  }
+
+  @media (min-width: 1024px) {
+    font-size: 20px;
+  }
 `;
 
 export const ModalTitleDisplay = styled.div`
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 600;
   color: #fff;
   flex: 1;
   cursor: pointer;
   padding: 2px 0;
+  width: 100%;
+
+  @media (min-width: 768px) {
+    font-size: 18px;
+  }
+
+  @media (min-width: 1024px) {
+    font-size: 20px;
+  }
 `;
 
 export const ModalTabs = styled.div`
   display: flex;
   align-items: center;
-  gap: 18px;
-  padding: 0 28px;
+  gap: 12px;
+  padding: 0 16px;
   margin-top: 10px;
   border-bottom: 1px solid #232422;
+  overflow-x: auto;
+
+  @media (min-width: 768px) {
+    padding: 0 22px;
+    gap: 16px;
+  }
+
+  @media (min-width: 1024px) {
+    padding: 0 28px;
+    gap: 18px;
+  }
 `;
 
 export const Tab = styled.div<{ active?: boolean }>`
@@ -147,24 +217,51 @@ export const Tab = styled.div<{ active?: boolean }>`
 
 export const ModalBody = styled.div`
   display: flex;
+  flex-direction: column;
   gap: 20px;
-  padding: 24px 24px 80px 24px;
+  padding: 16px 16px 150px 16px;
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
+  position: relative;
+  min-height: 400px;
+
+  @media (min-width: 768px) {
+    padding: 20px 20px 150px 20px;
+    flex-direction: row;
+    min-height: 450px;
+  }
+
+  @media (min-width: 1024px) {
+    padding: 24px 24px 150px 24px;
+    min-height: 500px;
+  }
 `;
 
 export const Left = styled.div`
-  flex: 3;
-  max-width: 65%;
-  min-width: 0;
+  width: 100%;
   overflow-x: hidden;
+  overflow-y: visible;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 20px;
+
+  @media (min-width: 768px) {
+    flex: 3;
+    max-width: 65%;
+    min-width: 0;
+    margin-bottom: 0;
+  }
 `;
 
 export const Right = styled.div`
-  flex: 1;
-  max-width: 30%;
-  min-width: 180px;
+  width: 100%;
+
+  @media (min-width: 768px) {
+    flex: 1;
+    max-width: 30%;
+    min-width: 180px;
+  }
 `;
 
 export const Section = styled.div`
@@ -292,14 +389,23 @@ export const Avatar = styled.div`
 `;
 
 export const ModalFooter = styled.div`
-  position: absolute;
+  position: fixed;
   right: 0;
   bottom: 0;
-  padding: 18px 32px;
+  padding: 14px 16px;
   background: #181a17;
-  z-index: 3;
+  z-index: 10;
   display: flex;
   justify-content: flex-end;
   width: 100%;
   border-top: 1px solid #333;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.2);
+
+  @media (min-width: 768px) {
+    padding: 16px 22px;
+  }
+
+  @media (min-width: 1024px) {
+    padding: 18px 32px;
+  }
 `;

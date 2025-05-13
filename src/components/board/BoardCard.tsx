@@ -11,8 +11,8 @@ interface CardProps {
 }
 
 const CardDiv = styled.div<CardProps>`
-  margin: 12px 0;
-  padding: 16px;
+  margin: 8px 0;
+  padding: 12px;
   background: #232422;
   border-radius: 8px;
   color: #eaeaea;
@@ -25,6 +25,7 @@ const CardDiv = styled.div<CardProps>`
   transition: all 0.2s ease;
   opacity: ${(props) => (props.isDragging ? 0.4 : 1)};
   transform: scale(${(props) => (props.isDragging ? 0.95 : 1)});
+  width: 100%;
 
   &:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
@@ -34,12 +35,17 @@ const CardDiv = styled.div<CardProps>`
   }
 
   @media (min-width: 768px) {
+    margin: 12px 0;
+    padding: 16px;
+  }
+
+  @media (min-width: 1024px) {
     padding: 16px 20px;
   }
 `;
 
 const CardTitle = styled.div`
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
   color: #fff;
   margin-bottom: 8px;
@@ -53,6 +59,10 @@ const CardTitle = styled.div`
   text-overflow: ellipsis;
 
   @media (min-width: 768px) {
+    font-size: 15px;
+  }
+
+  @media (min-width: 1024px) {
     font-size: 16px;
   }
 `;

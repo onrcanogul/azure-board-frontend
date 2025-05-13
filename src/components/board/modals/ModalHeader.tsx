@@ -1,4 +1,9 @@
-import { Icon, Dropdown, ComboBox } from "@fluentui/react";
+import {
+  Icon,
+  Dropdown,
+  ComboBox,
+  type IDropdownOption,
+} from "@fluentui/react";
 import { useState } from "react";
 import type { WorkItem } from "../BoardColumn";
 import {
@@ -20,10 +25,35 @@ import {
 } from "./ModalStyles";
 import {
   stateOptions,
+  pbiStateOptions,
+  bugStateOptions,
+  epicStateOptions,
+  featureStateOptions,
   areaOptions,
   iterationOptions,
   userOptions,
 } from "./modalOptions";
+import { WorkItemType } from "./WorkItemModal";
+import styled from "@emotion/styled";
+
+const TypeSelector = styled.div`
+  margin: 12px 0;
+  padding: 0 16px;
+
+  .ms-Dropdown-title {
+    background-color: #232422;
+    color: #fff;
+    border-color: #444;
+  }
+
+  .ms-Dropdown-caretDown {
+    color: #fff;
+  }
+
+  .ms-Dropdown:hover .ms-Dropdown-title {
+    border-color: #4fa3ff;
+  }
+`;
 
 interface ModalHeaderProps {
   item: WorkItem;
@@ -48,6 +78,9 @@ interface ModalHeaderProps {
   setAssignedUser: (user: string) => void;
   editAssignedUser: boolean;
   setEditAssignedUser: (edit: boolean) => void;
+  workItemType?: WorkItemType;
+  setWorkItemType?: (type: WorkItemType) => void;
+  workItemTypeOptions?: IDropdownOption[];
 }
 
 const ModalHeader = ({
@@ -73,12 +106,66 @@ const ModalHeader = ({
   setAssignedUser,
   editAssignedUser,
   setEditAssignedUser,
+  workItemType = WorkItemType.PBI,
+  setWorkItemType = () => {},
+  workItemTypeOptions = [],
 }: ModalHeaderProps) => {
+  // Get the appropriate state options based on work item type
+  const getStateOptions = () => {
+    switch (workItemType) {
+      case WorkItemType.PBI:
+        return pbiStateOptions;
+      case WorkItemType.BUG:
+        return bugStateOptions;
+      case WorkItemType.EPIC:
+        return epicStateOptions;
+      case WorkItemType.FEATURE:
+        return featureStateOptions;
+      default:
+        return stateOptions;
+    }
+  };
+
+  // Get icon name based on work item type
+  const getIconName = () => {
+    switch (workItemType) {
+      case WorkItemType.PBI:
+        return "CheckboxComposite";
+      case WorkItemType.BUG:
+        return "Bug";
+      case WorkItemType.EPIC:
+        return "Crown";
+      case WorkItemType.FEATURE:
+        return "Trophy";
+      default:
+        return "CheckboxComposite";
+    }
+  };
+
+  // Get icon color based on work item type
+  const getIconColor = () => {
+    switch (workItemType) {
+      case WorkItemType.PBI:
+        return "#4fa3ff";
+      case WorkItemType.BUG:
+        return "#ff5252";
+      case WorkItemType.EPIC:
+        return "#ffb900";
+      case WorkItemType.FEATURE:
+        return "#7e6fff";
+      default:
+        return "#4fa3ff";
+    }
+  };
+
   return (
     <StyledModalHeader>
       <ModalHeaderTop>
         <TypeIcon>
-          <Icon iconName="Crown" style={{ color: "#ffb900", fontSize: 18 }} />
+          <Icon
+            iconName={getIconName()}
+            style={{ color: getIconColor(), fontSize: 18 }}
+          />
         </TypeIcon>
         <ModalId>{item.id}</ModalId>
         {editTitle ? (
@@ -111,7 +198,7 @@ const ModalHeader = ({
       <ModalHeaderInfo>
         {editState ? (
           <Dropdown
-            options={stateOptions}
+            options={getStateOptions()}
             selectedKey={state}
             onChange={(_, o) => {
               setState(o!.key as string);
@@ -132,13 +219,14 @@ const ModalHeader = ({
           <StateBox onClick={() => setEditState(true)}>
             <Icon
               iconName="CircleFill"
-              style={{ color: "#ffb900", fontSize: 11 }}
+              style={{ color: getIconColor(), fontSize: 11 }}
             />{" "}
             {state}
           </StateBox>
         )}
         <TagBox>
-          <Icon iconName="Tag" style={{ fontSize: 12 }} /> epic
+          <Icon iconName="Tag" style={{ fontSize: 12 }} />{" "}
+          {workItemType.toLowerCase()}
         </TagBox>
         {editArea ? (
           <Dropdown
@@ -233,6 +321,39 @@ const ModalHeader = ({
           Added to backlog
         </InfoItem>
       </ModalHeaderInfo>
+
+      {/* İş öğesi türü seçici */}
+      <TypeSelector>
+        <label style={{ display: "block", marginBottom: "8px", color: "#fff" }}>
+          İş Öğesi Türü
+        </label>
+        <Dropdown
+          selectedKey={workItemType}
+          options={workItemTypeOptions}
+          onChange={(_, option) =>
+            option && setWorkItemType(option.key as WorkItemType)
+          }
+          styles={{
+            dropdown: {
+              width: "100%",
+              backgroundColor: "#232422",
+              color: "#fff",
+            },
+            dropdownItem: { backgroundColor: "#232422", color: "#fff" },
+            dropdownItemSelected: {
+              backgroundColor: "#353735",
+              color: "#fff",
+            },
+            caretDown: { color: "#fff" },
+            title: {
+              backgroundColor: "#232422",
+              color: "#fff",
+              borderColor: "#444",
+            },
+          }}
+        />
+      </TypeSelector>
+
       <ModalTabs>
         <Tab active>Details</Tab>
       </ModalTabs>

@@ -1,4 +1,4 @@
-import ResponsiveLayout from "../components/layout/ResponsiveLayout";
+import ProjectLayout from "../components/layout/ProjectLayout";
 import Sprints from "../components/sprints/Sprints";
 import styled from "@emotion/styled";
 
@@ -14,11 +14,11 @@ const PageContainer = styled.div`
 
 const SprintsPage = () => {
   return (
-    <ResponsiveLayout>
+    <ProjectLayout requireTeam={true}>
       <PageContainer>
         <Sprints />
       </PageContainer>
-    </ResponsiveLayout>
+    </ProjectLayout>
   );
 };
 

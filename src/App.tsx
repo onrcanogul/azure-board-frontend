@@ -8,6 +8,8 @@ import BacklogPage from "./pages/BacklogPage";
 import SprintsPage from "./pages/SprintsPage";
 import WorkItemPage from "./pages/WorkItemPage";
 import AuthPage from "./pages/LoginPage";
+import ProjectSelectionPage from "./pages/ProjectSelectionPage";
+import TeamSelectionPage from "./pages/TeamSelectionPage";
 import ToastManager from "./components/toast/ToastManager";
 import "./App.css";
 
@@ -26,6 +28,11 @@ function App() {
       <ToastManager />
       <Routes>
         <Route path="/login" element={<AuthPage />} />
+        <Route path="/projects" element={<ProjectSelectionPage />} />
+        <Route
+          path="/projects/:projectId/teams"
+          element={<TeamSelectionPage />}
+        />
         <Route path="/boards" element={<BoardPage />} />
         <Route path="/overview" element={<OverviewPage />} />
         <Route path="/work-items" element={<WorkItemPage />} />
@@ -33,8 +40,8 @@ function App() {
         <Route path="/sprints" element={<SprintsPage />} />
 
         {/* Ana sayfaya ve 404 sayfalarına yönlendirmeler */}
-        <Route path="/" element={<Navigate to="/boards" />} />
-        <Route path="*" element={<Navigate to="/boards" />} />
+        <Route path="/" element={<Navigate to="/projects" />} />
+        <Route path="*" element={<Navigate to="/projects" />} />
       </Routes>
     </>
   );

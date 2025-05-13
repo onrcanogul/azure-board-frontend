@@ -83,12 +83,17 @@ const BoardWrapper = styled.div`
   width: 100%;
   box-sizing: border-box;
   flex: 1;
+  padding-top: 60px; /* Make room for the mobile menu toggle */
+
+  @media (min-width: 1024px) {
+    padding-top: 0;
+  }
 `;
 
 const BoardContainer = styled.div`
   display: grid;
   gap: 16px;
-  padding: 16px;
+  padding: 12px;
   background: #181a17;
   width: 100%;
   box-sizing: border-box;

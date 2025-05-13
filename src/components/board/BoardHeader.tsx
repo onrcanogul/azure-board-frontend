@@ -20,9 +20,15 @@ const TopBar = styled.div`
 
 const HeaderContent = styled.div`
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 12px;
   width: 100%;
+
+  @media (min-width: 768px) {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
 `;
 
 const ActionButton = styled.button`
@@ -35,11 +41,17 @@ const ActionButton = styled.button`
   cursor: pointer;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   transition: background-color 0.2s;
+  width: 100%;
 
   &:hover {
     background-color: #3a8ad9;
+  }
+
+  @media (min-width: 768px) {
+    width: auto;
   }
 `;
 
@@ -49,19 +61,33 @@ const ViewToggleButton = styled.button<{ isActive: boolean }>`
   border: none;
   border-radius: 4px;
   padding: 8px 12px;
-  margin-right: 12px;
   font-size: 14px;
   cursor: pointer;
   transition: background-color 0.2s;
+  width: 100%;
+  margin-bottom: 8px;
 
   &:hover {
     background-color: ${(props) => (props.isActive ? "#3a8ad9" : "#383a36")};
+  }
+
+  @media (min-width: 768px) {
+    width: auto;
+    margin-right: 12px;
+    margin-bottom: 0;
   }
 `;
 
 const ActionGroup = styled.div`
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  width: 100%;
+
+  @media (min-width: 768px) {
+    flex-direction: row;
+    align-items: center;
+    width: auto;
+  }
 `;
 
 interface BoardHeaderProps {

@@ -1,8 +1,6 @@
 export enum SprintState {
-  PLANNED = "PLANNED",
-  ACTIVE = "ACTIVE",
-  COMPLETED = "COMPLETED",
-  CANCELLED = "CANCELLED",
+  INACTIVE = 0,
+  ACTIVE = 1,
 }
 
 export interface Sprint {
