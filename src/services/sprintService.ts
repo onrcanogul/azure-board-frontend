@@ -2,7 +2,7 @@ import axios from "axios";
 import type { Sprint } from "../domain/models/sprint";
 import { API_GATEWAY_URL } from "../config/api";
 
-export class SprintService {
+class SprintService {
   private readonly baseUrl = `${API_GATEWAY_URL}/sprint`;
 
   async getAll(): Promise<Sprint[]> {
@@ -129,3 +129,7 @@ export class SprintService {
     return new Error(defaultMessage);
   }
 }
+
+// Export as singleton instance
+export default new SprintService();
+export { SprintService };
