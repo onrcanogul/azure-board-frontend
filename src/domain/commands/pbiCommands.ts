@@ -41,3 +41,8 @@ export interface PbiUpdateCommand {
 export interface PbiDeleteCommand {
   id: string;
 }
+
+export interface PbiUpdateStateCommand {
+  id: string;
+  state: PbiState;
+}

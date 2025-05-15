@@ -13,10 +13,16 @@ import {
   showSuccessToast,
 } from "../components/toast/ToastManager";
 import pbiService from "../services/pbiService";
+import bugService from "../services/bugService";
 import {
   type ProductBacklogItem,
   PbiState,
 } from "../domain/models/productBacklogItem";
+import { BugStatus, type Bug } from "../domain/models/bug";
+import { WorkItemType } from "../services/workItemService";
+
+// Type union to represent both item types
+type BoardItem = ProductBacklogItem | (Bug & { type: string });
 
 // ProductBacklogItem -> WorkItem dönüşümü için yardımcı fonksiyon
 const pbiToWorkItem = (pbi: ProductBacklogItem): WorkItem => {
@@ -42,6 +48,36 @@ const pbiToWorkItem = (pbi: ProductBacklogItem): WorkItem => {
       : pbi.tagIds
       ? Array.from(pbi.tagIds)
       : [], // Handle both array and Set
+    type: WorkItemType.PBI,
+  };
+};
+
+// Bug -> WorkItem dönüşümü için yardımcı fonksiyon
+const bugToWorkItem = (bug: Bug): WorkItem => {
+  return {
+    id: bug.id,
+    sprintId: bug.sprintId,
+    areaId: bug.areaId,
+    featureId: bug.featureId,
+    assignedUserId: bug.assignedUserId,
+    description: bug.description,
+    functionalDescription: bug.functionalDescription,
+    technicalDescription: bug.technicalDescription,
+    priority: bug.priority,
+    state: bug.status ? bugStatusMapping[bug.status] : "To Do", // Map status to column state
+    status: bug.status || BugStatus.NEW,
+    storyPoint: bug.storyPoint,
+    businessValue: bug.businessValue,
+    dueDate: bug.dueDate ? bug.dueDate.toISOString() : "",
+    startedDate: bug.startedDate ? bug.startedDate.toISOString() : "",
+    completedDate: bug.completedDate ? bug.completedDate.toISOString() : "",
+    isDeleted: bug.isDeleted || false,
+    tagIds: Array.isArray(bug.tagIds)
+      ? bug.tagIds
+      : bug.tagIds
+      ? Array.from(bug.tagIds)
+      : [],
+    type: WorkItemType.BUG,
   };
 };
 
@@ -127,11 +163,26 @@ const stateMapping = {
   [PbiState.CLOSED]: "Done",
 };
 
+// BugStatus değerlerini kanban düzeni için eşleştirme
+const bugStatusMapping = {
+  [BugStatus.NEW]: "To Do",
+  [BugStatus.ACTIVE]: "In Progress",
+  [BugStatus.RESOLVED]: "Done",
+  [BugStatus.CLOSED]: "Done",
+};
+
 // Kanban düzeninden PbiState'e eşleştirme
 const columnToStateMapping = {
   "To Do": PbiState.NEW,
   "In Progress": PbiState.ACTIVE,
   Done: PbiState.RESOLVED,
+};
+
+// Kanban düzeninden BugStatus'a eşleştirme
+const columnToBugStatusMapping = {
+  "To Do": BugStatus.NEW,
+  "In Progress": BugStatus.ACTIVE,
+  Done: BugStatus.RESOLVED,
 };
 
 const columns = [
@@ -152,6 +203,7 @@ const notifyObservers = () => {
 
 const Board = () => {
   const [pbis, setPbis] = useState<ProductBacklogItem[]>([]);
+  const [bugs, setBugs] = useState<Bug[]>([]);
   const [selectedPbi, setSelectedPbi] = useState<ProductBacklogItem | null>(
     null
   );
@@ -167,23 +219,40 @@ const Board = () => {
       setError(null);
 
       let loadedPbis: ProductBacklogItem[] = [];
+      let loadedBugs: Bug[] = [];
 
       // Görünüm tipine göre farklı veri yükleme
       if (viewType === "my") {
-        // Kullanıcıya atanmış PBI'ları getir
-        const response = await pbiService.getByUser(CURRENT_USER_ID);
-        console.log("Raw API response:", response);
-        loadedPbis = response;
+        // Kullanıcıya atanmış iş öğelerini getir
+        const pbiResponse = await pbiService.getByUser(CURRENT_USER_ID);
+        console.log("Raw PBI API response:", pbiResponse);
+        loadedPbis = pbiResponse;
+
+        try {
+          const bugResponse = await bugService.getByUser(CURRENT_USER_ID);
+          console.log("Raw Bug API response:", bugResponse);
+          loadedBugs = bugResponse;
+        } catch (bugError) {
+          console.error("Error loading bugs:", bugError);
+        }
       } else {
-        // Tüm PBI'ları getir
+        // Tüm iş öğelerini getir
         loadedPbis = await pbiService.getAll();
+
+        try {
+          loadedBugs = await bugService.getAll();
+        } catch (bugError) {
+          console.error("Error loading all bugs:", bugError);
+        }
       }
 
       console.log("Loaded PBIs:", loadedPbis);
+      console.log("Loaded Bugs:", loadedBugs);
       setPbis(loadedPbis);
+      setBugs(loadedBugs);
     } catch (err) {
-      console.error("Error loading PBIs:", err);
-      setError("PBI'lar yüklenemedi. Lütfen sayfayı yenileyin.");
+      console.error("Error loading items:", err);
+      setError("İş öğeleri yüklenemedi. Lütfen sayfayı yenileyin.");
     } finally {
       setIsLoading(false);
     }
@@ -252,65 +321,127 @@ const Board = () => {
   };
 
   const handleMoveCard = useCallback(
-    async (id: string, targetColumnState: string) => {
+    async (id: string, targetColumnState: string, itemType?: string) => {
       try {
-        // İlgili PBI'ı bul
-        const pbiToMove = pbis.find((item) => item.id === id);
-        if (!pbiToMove) {
-          console.error(`PBI with id ${id} not found`);
-          return;
-        }
+        // İş öğesi tipine göre işlem yap
+        const isBug = itemType === WorkItemType.BUG;
 
-        // Hedef durumu PbiState'e dönüştür
-        const targetPbiState =
-          columnToStateMapping[
-            targetColumnState as keyof typeof columnToStateMapping
-          ];
+        if (isBug) {
+          // Bug için durum güncellemesi
+          const targetBugStatus =
+            columnToBugStatusMapping[
+              targetColumnState as keyof typeof columnToBugStatusMapping
+            ];
 
-        // Eğer zaten o durumdaysa, işlem yapma
-        if (stateMapping[pbiToMove.state] === targetColumnState) {
-          console.log(`PBI is already in ${targetColumnState} state`);
-          return;
-        }
+          // İlgili Bug'ı bul
+          const bugToMove = bugs.find((item) => item.id === id);
+          if (!bugToMove) {
+            console.error(`Bug with id ${id} not found`);
+            return;
+          }
 
-        // Optimistik UI güncellemesi için state'i güncelle
-        setPbis((prevPbis) =>
-          prevPbis.map((pbi) =>
-            pbi.id === id ? { ...pbi, state: targetPbiState } : pbi
-          )
-        );
+          // Eğer zaten o durumdaysa, işlem yapma
+          if (bugStatusMapping[bugToMove.status] === targetColumnState) {
+            console.log(`Bug is already in ${targetColumnState} state`);
+            return;
+          }
 
-        // PBI'ı güncelle
-        try {
-          const updatedPbi = {
-            ...pbiToMove,
-            state: targetPbiState,
-          };
-
-          await pbiService.update(updatedPbi);
-          showSuccessToast(
-            `PBI durumu başarıyla "${targetColumnState}" olarak güncellendi`
+          // Optimistik UI güncellemesi için state'i güncelle
+          setBugs((prevItems) =>
+            prevItems.map((item) =>
+              item.id === id ? { ...item, status: targetBugStatus } : item
+            )
           );
-          console.log(`PBI ${id} moved to ${targetColumnState} successfully`);
 
-          // Observable sistemi bilgilendir
-          notifyObservers();
-        } catch (updateError) {
-          console.error(`Error updating PBI ${id}:`, updateError);
-          showErrorToast(
-            `Durum değiştirme işlemi başarısız oldu: ${
-              (updateError as Error).message || "Bilinmeyen bir hata oluştu"
-            }`
+          // Bug durumunu güncelle
+          try {
+            // Sadece durum güncelleme komutunu gönder
+            const updateStateCommand = {
+              id: id,
+              status: targetBugStatus,
+            };
+
+            await bugService.updateState(updateStateCommand);
+            showSuccessToast(
+              `Bug durumu başarıyla "${targetColumnState}" olarak güncellendi`
+            );
+            console.log(`Bug ${id} moved to ${targetColumnState} successfully`);
+
+            // Observable sistemi bilgilendir
+            notifyObservers();
+          } catch (updateError) {
+            console.error(`Error updating Bug ${id}:`, updateError);
+            showErrorToast(
+              `Durum değiştirme işlemi başarısız oldu: ${
+                (updateError as Error).message || "Bilinmeyen bir hata oluştu"
+              }`
+            );
+            // Hata durumunda tekrar yükle
+            loadPbis();
+          }
+        } else {
+          // PBI için durum güncellemesi
+          const targetPbiState =
+            columnToStateMapping[
+              targetColumnState as keyof typeof columnToStateMapping
+            ];
+
+          // İlgili PBI'ı bul
+          const pbiToMove = pbis.find((item) => item.id === id);
+          if (!pbiToMove) {
+            console.error(`PBI with id ${id} not found`);
+            return;
+          }
+
+          // Eğer zaten o durumdaysa, işlem yapma
+          if (stateMapping[pbiToMove.state] === targetColumnState) {
+            console.log(`PBI is already in ${targetColumnState} state`);
+            return;
+          }
+
+          // Optimistik UI güncellemesi için state'i güncelle
+          setPbis((prevItems) =>
+            prevItems.map((item) =>
+              item.id === id ? { ...item, state: targetPbiState } : item
+            )
           );
-          // Hata durumunda tekrar yükle
-          loadPbis();
+
+          // PBI durumunu güncelle
+          try {
+            // Sadece durum güncelleme komutunu gönder
+            const updateStateCommand = {
+              id: id,
+              state: targetPbiState,
+            };
+
+            await pbiService.updateState(updateStateCommand);
+            showSuccessToast(
+              `PBI durumu başarıyla "${targetColumnState}" olarak güncellendi`
+            );
+            console.log(`PBI ${id} moved to ${targetColumnState} successfully`);
+
+            // Observable sistemi bilgilendir
+            notifyObservers();
+          } catch (updateError) {
+            console.error(`Error updating PBI ${id}:`, updateError);
+            showErrorToast(
+              `Durum değiştirme işlemi başarısız oldu: ${
+                (updateError as Error).message || "Bilinmeyen bir hata oluştu"
+              }`
+            );
+            // Hata durumunda tekrar yükle
+            loadPbis();
+          }
         }
       } catch (error) {
-        console.error(`Error moving PBI ${id} to ${targetColumnState}:`, error);
-        setError("PBI durumu değiştirilemedi. Lütfen tekrar deneyin.");
+        console.error(
+          `Error moving item ${id} to ${targetColumnState}:`,
+          error
+        );
+        setError("İş öğesi durumu değiştirilemedi. Lütfen tekrar deneyin.");
       }
     },
-    [pbis]
+    [pbis, bugs]
   );
 
   const handleSavePbi = async (workItem: WorkItem) => {
@@ -358,9 +489,10 @@ const Board = () => {
     );
   }
 
-  // PBI'ları WorkItem'a dönüştür ve kanban sütunlarına göre filtrele
+  // PBI'ları ve Bug'ları WorkItem'a dönüştür ve kanban sütunlarına göre filtrele
   const getWorkItemsByColumn = (columnKey: string): WorkItem[] => {
-    return pbis
+    // PBI'ları filtrele ve dönüştür
+    const pbiItems = pbis
       .filter((pbi) => !pbi.isDeleted)
       .filter((pbi) => {
         // If state is null, assign it to "To Do" column
@@ -368,6 +500,21 @@ const Board = () => {
         return mappedState === columnKey;
       })
       .map(pbiToWorkItem);
+
+    // Bug'ları filtrele ve dönüştür
+    const bugItems = bugs
+      .filter((bug) => !bug.isDeleted)
+      .filter((bug) => {
+        // If status is null, assign it to "To Do" column
+        const mappedStatus = bug.status
+          ? bugStatusMapping[bug.status]
+          : "To Do";
+        return mappedStatus === columnKey;
+      })
+      .map(bugToWorkItem);
+
+    // Her iki tür öğeyi birleştir
+    return [...pbiItems, ...bugItems];
   };
 
   return (
@@ -381,7 +528,7 @@ const Board = () => {
         <BoardFilterBar />
         {isLoading ? (
           <div style={{ padding: "20px", textAlign: "center" }}>
-            PBI'lar yükleniyor...
+            İş öğeleri yükleniyor...
           </div>
         ) : (
           <BoardContainer>

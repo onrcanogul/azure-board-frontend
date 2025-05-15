@@ -14,13 +14,13 @@ import workItemService, {
   WorkItemType as ServiceWorkItemType,
 } from "../../../services/workItemService";
 import pbiService from "../../../services/pbiService";
-import { BugService } from "../../../services/bugService";
 import { FeatureService } from "../../../services/featureService";
 import { EpicService } from "../../../services/epicService";
 import { BugStatus } from "../../../domain/models/bug";
 import { PbiState } from "../../../domain/models/productBacklogItem";
 import { Dropdown, type IDropdownOption } from "@fluentui/react";
 import styled from "@emotion/styled";
+import bugService from "../../../services/bugService";
 
 // İş öğesi türlerini tanımlayan enum
 export enum WorkItemType {
@@ -64,7 +64,6 @@ interface WorkItemModalProps {
   onSave?: (item: WorkItem) => Promise<void>;
 }
 
-const bugServiceInstance = new BugService();
 const featureServiceInstance = new FeatureService();
 const epicServiceInstance = new EpicService();
 
@@ -210,7 +209,7 @@ const WorkItemModal = ({
 
         case WorkItemType.BUG:
           if (isNew) {
-            await bugServiceInstance.create({
+            await bugService.create({
               ...commonData,
               sprintId,
               featureId,
@@ -229,7 +228,7 @@ const WorkItemModal = ({
               tagIds: new Set(tagIds),
             });
           } else {
-            await bugServiceInstance.update({
+            await bugService.update({
               id: item.id,
               ...commonData,
               sprintId,

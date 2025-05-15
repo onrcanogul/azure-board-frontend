@@ -1,6 +1,6 @@
 export enum BugStatus {
   NEW = "NEW",
-  ACTIVE = "ACTIVE",
+  ACTIVE = "IN_PROGRESS",
   RESOLVED = "RESOLVED",
   CLOSED = "CLOSED",
 }

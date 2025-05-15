@@ -43,3 +43,8 @@ export interface BugUpdatedCommand {
 export interface BugDeletedCommand {
   id: string;
 }
+
+export interface BugUpdateStateCommand {
+  id: string;
+  status: BugStatus;
+}

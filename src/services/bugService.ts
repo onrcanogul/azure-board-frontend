@@ -3,10 +3,11 @@ import type { Bug } from "../domain/models/bug";
 import type {
   BugCreatedCommand,
   BugUpdatedCommand,
+  BugUpdateStateCommand,
 } from "../domain/commands/bugCommands";
 import { API_GATEWAY_URL } from "../config/api";
 
-export class BugService {
+class BugService {
   private readonly baseUrl = `${API_GATEWAY_URL}/bug`;
 
   // Command Operations
@@ -23,6 +24,15 @@ export class BugService {
     try {
       const response = await axios.put(this.baseUrl, command);
       return response.data.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  async updateState(command: BugUpdateStateCommand): Promise<void> {
+    try {
+      const response = await axios.put(`${this.baseUrl}/state`, command);
+      return response.data;
     } catch (error) {
       throw this.handleError(error);
     }
@@ -93,3 +103,5 @@ export class BugService {
     throw error;
   }
 }
+
+export default new BugService();

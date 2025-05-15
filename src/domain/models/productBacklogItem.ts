@@ -1,6 +1,6 @@
 export enum PbiState {
   NEW = "NEW",
-  ACTIVE = "ACTIVE",
+  ACTIVE = "IN_PROGRESS",
   RESOLVED = "RESOLVED",
   CLOSED = "CLOSED",
 }

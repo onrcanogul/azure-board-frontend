@@ -132,6 +132,7 @@ const BoardCard: React.FC<BoardCardProps> = ({ item, onClick }) => {
         id: item.id,
         type: ItemTypes.CARD,
         originalState: item.state,
+        workItemType: item.type,
       }),
       collect: (monitor) => ({
         isDragging: !!monitor.isDragging(),
@@ -143,7 +144,7 @@ const BoardCard: React.FC<BoardCardProps> = ({ item, onClick }) => {
         }
       },
     }),
-    [item.id, item.state]
+    [item.id, item.state, item.type]
   );
 
   // Truncate ID to first 6 characters for better display

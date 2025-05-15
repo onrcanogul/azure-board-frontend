@@ -3,6 +3,7 @@ import type { ProductBacklogItem } from "../domain/models/productBacklogItem";
 import type {
   PbiCreatedCommand,
   PbiUpdateCommand,
+  PbiUpdateStateCommand,
 } from "../domain/commands/pbiCommands";
 import { API_GATEWAY_URL } from "../config/api";
 import { PbiState } from "../domain/models/productBacklogItem";
@@ -54,6 +55,16 @@ class PbiService {
 
       console.log("Sending PBI update command:", commandData);
       const response = await axios.put(this.baseUrl, commandData);
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  async updateState(command: PbiUpdateStateCommand): Promise<void> {
+    try {
+      console.log("Sending PBI update state command:", command);
+      const response = await axios.put(`${this.baseUrl}/state`, command);
       return response.data;
     } catch (error) {
       throw this.handleError(error);

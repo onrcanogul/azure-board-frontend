@@ -18,6 +18,7 @@ export interface WorkItem {
   technicalDescription: string;
   priority: number;
   state: string;
+  status?: string; // For Bug items
   storyPoint: number;
   businessValue: number;
   dueDate: string; // ISO string
@@ -33,7 +34,7 @@ interface BoardColumnProps {
   items: WorkItem[];
   onAddItem?: () => void;
   onCardClick?: (item: WorkItem) => void;
-  onMoveCard?: (id: string, targetState: string) => void;
+  onMoveCard?: (id: string, targetState: string, type?: string) => void;
 }
 
 interface ColumnProps {
@@ -142,7 +143,7 @@ const BoardColumn: React.FC<BoardColumnProps> = ({
     (item: DragItem) => {
       if (onMoveCard && item.originalState !== title) {
         console.log(`Dropping card ${item.id} to ${title}`);
-        onMoveCard(item.id, title);
+        onMoveCard(item.id, title, item.type);
         return { name: title };
       }
       return undefined;
