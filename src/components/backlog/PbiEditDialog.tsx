@@ -328,7 +328,7 @@ const PbiEditDialog: React.FC<PbiEditDialogProps> = ({
           }}
         />
         <PrimaryButton
-          text={isSubmitting ? "Saving..." : "Save"}
+          text={isSubmitting ? "Saving..." : "Save and Close"}
           onClick={handleSubmit}
           disabled={isSubmitting}
           styles={{

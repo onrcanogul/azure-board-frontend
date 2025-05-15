@@ -114,6 +114,9 @@ const WorkItemModal = ({
     WorkItemType.PBI
   );
 
+  // Update state variables to include edit states for epicId and featureId
+  const [editEpicId, setEditEpicId] = useState(false);
+
   // Update state from item prop whenever it changes
   useEffect(() => {
     if (item) {
@@ -432,6 +435,19 @@ const WorkItemModal = ({
             editBusinessValue={editBusinessValue}
             setEditBusinessValue={setEditBusinessValue}
             workItemType={workItemType}
+            epicId={workItemType === WorkItemType.FEATURE ? featureId : ""}
+            setEpicId={setFeatureId}
+            editEpicId={editFeatureId}
+            setEditEpicId={setEditFeatureId}
+            featureId={
+              workItemType === WorkItemType.PBI ||
+              workItemType === WorkItemType.BUG
+                ? featureId
+                : ""
+            }
+            setFeatureId={setFeatureId}
+            editFeatureId={editFeatureId}
+            setEditFeatureId={setEditFeatureId}
           />
         </ModalBody>
 

@@ -10,6 +10,11 @@ interface CardProps {
   isDragging: boolean;
 }
 
+const CardWrapper = styled.div`
+  width: 100%;
+  box-sizing: border-box;
+`;
+
 const CardDiv = styled.div<CardProps>`
   margin: 8px 0;
   padding: 12px;
@@ -26,6 +31,8 @@ const CardDiv = styled.div<CardProps>`
   opacity: ${(props) => (props.isDragging ? 0.4 : 1)};
   transform: scale(${(props) => (props.isDragging ? 0.95 : 1)});
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 
   &:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
@@ -152,7 +159,7 @@ const BoardCard: React.FC<BoardCardProps> = ({ item, onClick }) => {
 
   return (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    <div ref={dragRef as any} id={`card-${item.id}`}>
+    <CardWrapper ref={dragRef as any} id={`card-${item.id}`}>
       <CardDiv onClick={onClick} isDragging={isDragging}>
         <CardTitle>{item.description}</CardTitle>
         <CardMeta>
@@ -165,7 +172,7 @@ const BoardCard: React.FC<BoardCardProps> = ({ item, onClick }) => {
           {item.storyPoint > 0 && <span>SP: {item.storyPoint}</span>}
         </CardMeta>
       </CardDiv>
-    </div>
+    </CardWrapper>
   );
 };
 

@@ -48,6 +48,7 @@ const ColumnContainer = styled.div`
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+  overflow-x: hidden;
 `;
 
 const ColumnDiv = styled.div<ColumnProps>`
@@ -101,6 +102,7 @@ const ItemCount = styled.span`
 const CardList = styled.div`
   padding: 0 12px;
   overflow-y: auto;
+  overflow-x: hidden;
   flex: 1;
   width: 100%;
   box-sizing: border-box;

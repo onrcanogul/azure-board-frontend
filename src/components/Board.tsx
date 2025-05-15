@@ -120,6 +120,7 @@ const BoardWrapper = styled.div`
   box-sizing: border-box;
   flex: 1;
   padding-top: 60px; /* Make room for the mobile menu toggle */
+  overflow-x: hidden;
 
   @media (min-width: 1024px) {
     padding-top: 0;
@@ -133,8 +134,9 @@ const BoardContainer = styled.div`
   background: #181a17;
   width: 100%;
   box-sizing: border-box;
-  overflow-x: auto;
+  overflow-x: hidden;
   min-width: 0; /* Prevents flex items from overflowing */
+  max-width: 100%; /* Ensures content doesn't expand beyond viewport */
   flex: 1;
 
   /* Mobile: Stack columns vertically */
