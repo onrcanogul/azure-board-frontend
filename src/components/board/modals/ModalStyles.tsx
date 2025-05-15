@@ -219,21 +219,21 @@ export const ModalBody = styled.div`
   display: flex;
   flex-direction: column;
   gap: 20px;
-  padding: 16px 16px 150px 16px;
+  padding: 16px 16px 80px 16px;
   flex: 1;
-  overflow-y: auto;
+  overflow-y: visible;
   overflow-x: hidden;
   position: relative;
   min-height: 400px;
 
   @media (min-width: 768px) {
-    padding: 20px 20px 150px 20px;
+    padding: 20px 20px 80px 20px;
     flex-direction: row;
     min-height: 450px;
   }
 
   @media (min-width: 1024px) {
-    padding: 24px 24px 150px 24px;
+    padding: 24px 24px 80px 24px;
     min-height: 500px;
   }
 `;
@@ -241,16 +241,19 @@ export const ModalBody = styled.div`
 export const Left = styled.div`
   width: 100%;
   overflow-x: hidden;
-  overflow-y: visible;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   margin-bottom: 20px;
+  max-height: 600px;
+  padding-right: 10px;
 
   @media (min-width: 768px) {
     flex: 3;
     max-width: 65%;
     min-width: 0;
     margin-bottom: 0;
+    max-height: 65vh;
   }
 `;
 

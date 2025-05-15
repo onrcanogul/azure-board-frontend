@@ -40,14 +40,14 @@ export const featureStateOptions: IDropdownOption[] = [
 ];
 
 export const areaOptions: IDropdownOption[] = [
-  { key: "OO", text: "OO" },
-  { key: "Frontend", text: "Frontend" },
-  { key: "Backend", text: "Backend" },
+  { key: "1e52c4c1-7d20-4f62-a3d1-267dd2ab4e65", text: "OO" },
+  { key: "frontend", text: "Frontend" },
+  { key: "backend", text: "Backend" },
 ];
 
 export const iterationOptions: IDropdownOption[] = [
-  { key: "OO\\Sprint 1", text: "OO\\Sprint 1" },
-  { key: "OO\\Sprint 2", text: "OO\\Sprint 2" },
+  { key: "d290f1ee-6c54-4b01-90e6-d701748f0851", text: "Sprint 1" },
+  { key: "sprint2", text: "Sprint 2" },
 ];
 
 export const priorityOptions: IDropdownOption[] = [
@@ -58,7 +58,7 @@ export const priorityOptions: IDropdownOption[] = [
 
 export const userOptions: IComboBoxOption[] = [
   { key: "", text: "No one selected" },
-  { key: "onurcan", text: "Onur Can Oğul" },
-  { key: "salih", text: "Muhammed Salih Koç" },
-  { key: "ayse", text: "Ayşe Yılmaz" },
+  { key: "a8e4ed53-b671-4f21-a3ee-fc87f1299a11", text: "Onur Can Oğul" },
+  { key: "user2", text: "Muhammed Salih Koç" },
+  { key: "user3", text: "Ayşe Yılmaz" },
 ];

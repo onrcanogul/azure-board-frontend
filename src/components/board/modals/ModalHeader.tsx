@@ -83,6 +83,31 @@ interface ModalHeaderProps {
   workItemTypeOptions?: IDropdownOption[];
 }
 
+// ID'leri isimlere çeviren yardımcı fonksiyonlar
+const getAreaName = (areaId: string) => {
+  const area = areaOptions.find((option) => option.key === areaId);
+  return area ? area.text : "Area";
+};
+
+const getIterationName = (iterationId: string) => {
+  const iteration = iterationOptions.find(
+    (option) => option.key === iterationId
+  );
+  return iteration ? iteration.text : "Iteration";
+};
+
+const getUserName = (userId: string) => {
+  const user = userOptions.find((option) => option.key === userId);
+  return user ? user.text : "No one selected";
+};
+
+// ID'den kısaltılmış bir kod oluştur
+const getShortId = (id: string) => {
+  if (!id) return "";
+  // ID'yi maksimum 8 karakter olacak şekilde kısalt
+  return id.substring(0, 8);
+};
+
 const ModalHeader = ({
   item,
   onClose,
@@ -167,7 +192,7 @@ const ModalHeader = ({
             style={{ color: getIconColor(), fontSize: 18 }}
           />
         </TypeIcon>
-        <ModalId>{item.id}</ModalId>
+        <ModalId>{getShortId(item.id)}</ModalId>
         {editTitle ? (
           <ModalTitle
             value={title}
@@ -253,7 +278,7 @@ const ModalHeader = ({
               iconName="MapPin"
               style={{ fontSize: 13, color: "#bdbdbd" }}
             />{" "}
-            {area || "Area"}
+            {getAreaName(area)}
           </InfoItem>
         )}
         {editIteration ? (
@@ -281,7 +306,7 @@ const ModalHeader = ({
               iconName="TimelineProgress"
               style={{ fontSize: 13, color: "#bdbdbd" }}
             />{" "}
-            {iteration || "Iteration"}
+            {getIterationName(iteration)}
           </InfoItem>
         )}
         {editAssignedUser ? (
@@ -308,9 +333,7 @@ const ModalHeader = ({
               iconName="Contact"
               style={{ fontSize: 13, color: "#bdbdbd" }}
             />{" "}
-            {assignedUser
-              ? userOptions.find((u) => u.key === assignedUser)?.text
-              : "No one selected"}
+            {getUserName(assignedUser)}
           </InfoItem>
         )}
         <InfoItem>

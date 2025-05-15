@@ -156,7 +156,9 @@ const BoardCard: React.FC<BoardCardProps> = ({ item, onClick }) => {
       <CardDiv onClick={onClick} isDragging={isDragging}>
         <CardTitle>{item.description}</CardTitle>
         <CardMeta>
-          <CardId>#{shortenedId}</CardId>
+          <CardType>
+            {item.type === "PBI" || !item.type ? "PBI" : item.type}
+          </CardType>
           <PriorityBadge priority={item.priority}>
             P{item.priority || 0}
           </PriorityBadge>
