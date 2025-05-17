@@ -2,7 +2,7 @@ export interface Feature {
   id: string;
   title: string;
   description: string;
-  areaId: string;
+  teamId: string;
   epicId: string;
   priority: number;
   createdDate: Date;

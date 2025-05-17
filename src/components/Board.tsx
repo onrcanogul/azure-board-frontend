@@ -2,7 +2,7 @@ import styled from "@emotion/styled";
 import BoardHeader from "./board/BoardHeader";
 import BoardFilterBar from "./board/BoardFilterBar";
 import BoardColumn from "./board/BoardColumn";
-import WorkItemModal from "./board/WorkItemModal";
+import WorkItemModal from "./board/modals/WorkItemModal";
 import type { WorkItem } from "./board/BoardColumn";
 import { useState, useEffect, useCallback } from "react";
 import { DndProvider } from "react-dnd";
@@ -268,9 +268,19 @@ const Board = () => {
     const observerCallback = () => loadPbis();
     observers.push(observerCallback);
 
+    // Listen for the custom workitem-updated event
+    const handleWorkItemUpdated = () => {
+      console.log("Received workitem-updated event, refreshing data...");
+      loadPbis();
+    };
+
+    window.addEventListener("workitem-updated", handleWorkItemUpdated);
+
     return () => {
       // Component unmount olduğunda observer'ı kaldır
       observers = observers.filter((observer) => observer !== observerCallback);
+      // Remove the event listener
+      window.removeEventListener("workitem-updated", handleWorkItemUpdated);
     };
   }, [loadPbis]);
 

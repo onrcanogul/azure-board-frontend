@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import type { WorkItem } from "../BoardColumn";
+import type { Feature } from "../../../domain/models/feature";
+import type { Epic } from "../../../domain/models/epic";
 import {
   Overlay,
   Modal,
@@ -21,6 +23,10 @@ import { PbiState } from "../../../domain/models/productBacklogItem";
 import { Dropdown, type IDropdownOption } from "@fluentui/react";
 import styled from "@emotion/styled";
 import bugService from "../../../services/bugService";
+import {
+  showSuccessToast,
+  showErrorToast,
+} from "../../../components/toast/ToastManager";
 
 // İş öğesi türlerini tanımlayan enum
 export enum WorkItemType {
@@ -66,6 +72,14 @@ interface WorkItemModalProps {
 
 const featureServiceInstance = new FeatureService();
 const epicServiceInstance = new EpicService();
+
+// This is a safer approach than using declare
+// We'll use a custom event to trigger data refresh instead
+const triggerDataRefresh = () => {
+  // Create and dispatch a custom event to trigger data refresh
+  const event = new CustomEvent("workitem-updated");
+  window.dispatchEvent(event);
+};
 
 const WorkItemModal = ({
   item,
@@ -117,6 +131,12 @@ const WorkItemModal = ({
   // Update state variables to include edit states for epicId and featureId
   const [editEpicId, setEditEpicId] = useState(false);
 
+  // Add new state for features and a function to fetch features when areaId changes
+  const [features, setFeatures] = useState<Feature[]>([]);
+  const [isLoadingFeatures, setIsLoadingFeatures] = useState(false);
+  const [epics, setEpics] = useState<Epic[]>([]);
+  const [isLoadingEpics, setIsLoadingEpics] = useState(false);
+
   // Update state from item prop whenever it changes
   useEffect(() => {
     if (item) {
@@ -149,8 +169,74 @@ const WorkItemModal = ({
     }
   }, [item]);
 
+  // Add useEffect to fetch features when areaId changes or workItemType changes
+  useEffect(() => {
+    const fetchFeatures = async () => {
+      if (
+        (workItemType === WorkItemType.PBI ||
+          workItemType === WorkItemType.BUG) &&
+        open
+      ) {
+        try {
+          setIsLoadingFeatures(true);
+          const teamId = localStorage.getItem("selectedTeamId");
+          if (!teamId) {
+            console.warn("No team ID found in localStorage");
+            return;
+          }
+          const fetchedFeatures = await featureServiceInstance.getByTeam(
+            teamId
+          );
+          setFeatures(fetchedFeatures);
+        } catch (error) {
+          console.error("Error fetching features:", error);
+          showErrorToast("Özellikler yüklenirken bir hata oluştu");
+        } finally {
+          setIsLoadingFeatures(false);
+        }
+      } else {
+        setFeatures([]);
+      }
+    };
+
+    fetchFeatures();
+  }, [areaId, workItemType, open]);
+
+  // Add useEffect to fetch epics when modal opens or workItemType changes
+  useEffect(() => {
+    const fetchEpics = async () => {
+      try {
+        setIsLoadingEpics(true);
+        const teamId = localStorage.getItem("selectedTeamId");
+        if (!teamId) {
+          console.warn("No team ID found in localStorage");
+          return;
+        }
+
+        const fetchedEpics = await epicServiceInstance.getByTeam(teamId);
+        console.log("Fetched epics:", fetchedEpics);
+        setEpics(fetchedEpics);
+      } catch (error) {
+        console.error("Error fetching epics:", error);
+        showErrorToast("Epic'ler yüklenirken bir hata oluştu");
+      } finally {
+        setIsLoadingEpics(false);
+      }
+    };
+
+    if (open && workItemType === WorkItemType.FEATURE) {
+      fetchEpics();
+    }
+  }, [open, workItemType]);
+
   const handleSave = async () => {
     if (isLoading) return;
+
+    // Validate required fields based on work item type
+    if (workItemType === WorkItemType.FEATURE && !featureId) {
+      showErrorToast("Feature için Epic seçimi zorunludur");
+      return;
+    }
 
     setIsLoading(true);
     setError(null);
@@ -188,6 +274,8 @@ const WorkItemModal = ({
                 : new Date(),
               tagIds: new Set(tagIds),
             });
+            showSuccessToast("Yeni PBI başarıyla oluşturuldu");
+            triggerDataRefresh(); // Trigger refresh
           } else {
             await pbiService.update({
               id: item.id,
@@ -207,6 +295,8 @@ const WorkItemModal = ({
                 : new Date(),
               tagIds: new Set(tagIds),
             });
+            showSuccessToast("PBI başarıyla güncellendi");
+            triggerDataRefresh(); // Trigger refresh
           }
           break;
 
@@ -230,6 +320,8 @@ const WorkItemModal = ({
               isNoBug: false,
               tagIds: new Set(tagIds),
             });
+            showSuccessToast("Yeni Bug başarıyla oluşturuldu");
+            triggerDataRefresh(); // Trigger refresh
           } else {
             await bugService.update({
               id: item.id,
@@ -250,6 +342,8 @@ const WorkItemModal = ({
               isNoBug: false,
               tagIds: new Set(tagIds),
             });
+            showSuccessToast("Bug başarıyla güncellendi");
+            triggerDataRefresh(); // Trigger refresh
           }
           break;
 
@@ -258,11 +352,13 @@ const WorkItemModal = ({
             await epicServiceInstance.create({
               ...commonData,
               title: description,
-              teamId: currentAssignedUserId,
+              teamId: localStorage.getItem("selectedTeamId") ?? "",
               startDate: startedDate ? new Date(startedDate) : new Date(),
               endDate: dueDate ? new Date(dueDate) : new Date(),
               isDeleted: false,
             });
+            showSuccessToast("Yeni Epic başarıyla oluşturuldu");
+            triggerDataRefresh(); // Trigger refresh
           } else {
             await epicServiceInstance.update({
               id: item.id,
@@ -275,6 +371,8 @@ const WorkItemModal = ({
               updatedDate: new Date(),
               isDeleted: false,
             });
+            showSuccessToast("Epic başarıyla güncellendi");
+            triggerDataRefresh(); // Trigger refresh
           }
           break;
 
@@ -282,15 +380,19 @@ const WorkItemModal = ({
           if (isNew) {
             await featureServiceInstance.create({
               ...commonData,
+              teamId: localStorage.getItem("selectedTeamId") ?? "",
               title: description,
               epicId: featureId || "",
               isCompleted: false,
               isDeleted: false,
             });
+            showSuccessToast("Yeni Feature başarıyla oluşturuldu");
+            triggerDataRefresh(); // Trigger refresh
           } else {
             await featureServiceInstance.update({
               id: item.id,
               ...commonData,
+              teamId: localStorage.getItem("selectedTeamId") ?? "",
               title: description,
               epicId: featureId || "",
               createdDate: new Date(),
@@ -298,6 +400,8 @@ const WorkItemModal = ({
               isCompleted: false,
               isDeleted: false,
             });
+            showSuccessToast("Feature başarıyla güncellendi");
+            triggerDataRefresh(); // Trigger refresh
           }
           break;
 
@@ -326,10 +430,16 @@ const WorkItemModal = ({
 
           if (onSave) {
             await onSave(updatedItem);
+            showSuccessToast("İş öğesi başarıyla kaydedildi");
+            triggerDataRefresh(); // Trigger refresh
           } else if (isNew) {
             await workItemService.create(updatedItem);
+            showSuccessToast("Yeni iş öğesi başarıyla oluşturuldu");
+            triggerDataRefresh(); // Trigger refresh
           } else {
             await workItemService.update(updatedItem);
+            showSuccessToast("İş öğesi başarıyla güncellendi");
+            triggerDataRefresh(); // Trigger refresh
           }
       }
 
@@ -339,6 +449,11 @@ const WorkItemModal = ({
     } catch (error) {
       console.error("Error saving work item:", error);
       setError(
+        `İş öğesi kaydedilemedi: ${
+          error instanceof Error ? error.message : "Bilinmeyen hata"
+        }`
+      );
+      showErrorToast(
         `İş öğesi kaydedilemedi: ${
           error instanceof Error ? error.message : "Bilinmeyen hata"
         }`
@@ -448,6 +563,10 @@ const WorkItemModal = ({
             setFeatureId={setFeatureId}
             editFeatureId={editFeatureId}
             setEditFeatureId={setEditFeatureId}
+            features={features}
+            isLoadingFeatures={isLoadingFeatures}
+            epics={epics}
+            isLoadingEpics={isLoadingEpics}
           />
         </ModalBody>
 

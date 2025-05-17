@@ -70,6 +70,10 @@ interface ModalRightProps {
   setFeatureId?: (featureId: string) => void;
   editFeatureId?: boolean;
   setEditFeatureId?: (edit: boolean) => void;
+  features?: Feature[];
+  isLoadingFeatures?: boolean;
+  epics?: Epic[];
+  isLoadingEpics?: boolean;
 }
 
 const ModalRight = ({
@@ -102,18 +106,14 @@ const ModalRight = ({
   setFeatureId = () => {},
   editFeatureId = false,
   setEditFeatureId = () => {},
+  features = [],
+  isLoadingFeatures = false,
+  epics = [],
+  isLoadingEpics = false,
 }: ModalRightProps) => {
   // State for Epic and Feature options
-  const [epics, setEpics] = useState<IDropdownOption[]>([]);
-  const [features, setFeatures] = useState<IDropdownOption[]>([]);
-  const [loadingEpics, setLoadingEpics] = useState(false);
-  const [loadingFeatures, setLoadingFeatures] = useState(false);
   const [selectedEpicName, setSelectedEpicName] = useState("");
   const [selectedFeatureName, setSelectedFeatureName] = useState("");
-
-  // Service instances
-  const epicService = new EpicService();
-  const featureService = new FeatureService();
 
   // Determine if we should show story points and business value based on the work item type
   const showStoryPoints =
@@ -124,80 +124,25 @@ const ModalRight = ({
   const showFeatureSelector =
     workItemType === WorkItemType.PBI || workItemType === WorkItemType.BUG;
 
-  // Load epics from API - only for FEATURE type
+  // Update selected epic name when epics or epicId changes
   useEffect(() => {
-    if (showEpicSelector) {
-      const loadEpics = async () => {
-        try {
-          setLoadingEpics(true);
-          // Get team ID from localStorage
-          const teamId = localStorage.getItem("selectedTeamId") || "";
-          if (!teamId) return;
-
-          // Get epics for the selected team
-          const epicList = await epicService.getByTeam(teamId);
-          const options = epicList.map((epic: Epic) => ({
-            key: epic.id,
-            text: epic.title,
-          }));
-          setEpics(options);
-
-          // If epicId is set, find the name
-          if (epicId) {
-            const epic = epicList.find((e: Epic) => e.id === epicId);
-            if (epic) setSelectedEpicName(epic.title);
-          }
-        } catch (error) {
-          console.error("Error loading epics:", error);
-        } finally {
-          setLoadingEpics(false);
-        }
-      };
-
-      loadEpics();
+    if (epicId && epics.length > 0) {
+      const epic = epics.find((e) => e.id === epicId);
+      if (epic) {
+        setSelectedEpicName(epic.title);
+      }
     }
-  }, [showEpicSelector, epicId]);
+  }, [epicId, epics]);
 
-  // Load features from API - only for PBI or BUG types
+  // Update selected feature name when features or featureId changes
   useEffect(() => {
-    if (showFeatureSelector) {
-      const loadFeatures = async () => {
-        try {
-          setLoadingFeatures(true);
-
-          // Get team ID for area context
-          const teamId = localStorage.getItem("selectedTeamId") || "";
-          if (!teamId) return;
-
-          // Use area ID (temporarily same as team ID) to get features
-          // In a real implementation, you would get the correct area ID for the team
-          const areaId = teamId;
-
-          // Get features by area
-          const featureList = await featureService.getByArea(areaId);
-          const options = featureList.map((feature: Feature) => ({
-            key: feature.id,
-            text: feature.title,
-          }));
-          setFeatures(options);
-
-          // If featureId is set, find the name
-          if (featureId) {
-            const feature = featureList.find(
-              (f: Feature) => f.id === featureId
-            );
-            if (feature) setSelectedFeatureName(feature.title);
-          }
-        } catch (error) {
-          console.error("Error loading features:", error);
-        } finally {
-          setLoadingFeatures(false);
-        }
-      };
-
-      loadFeatures();
+    if (featureId && features.length > 0) {
+      const feature = features.find((f) => f.id === featureId);
+      if (feature) {
+        setSelectedFeatureName(feature.title);
+      }
     }
-  }, [showFeatureSelector, featureId]);
+  }, [featureId, features]);
 
   // Handle epic selection
   const handleEpicChange = (
@@ -220,6 +165,18 @@ const ModalRight = ({
       setSelectedFeatureName(option.text as string);
     }
   };
+
+  // Convert epics to dropdown options
+  const epicOptions: IDropdownOption[] = epics.map((epic) => ({
+    key: epic.id,
+    text: epic.title,
+  }));
+
+  // Convert features to dropdown options
+  const featureOptions: IDropdownOption[] = features.map((feature) => ({
+    key: feature.id,
+    text: feature.title,
+  }));
 
   return (
     <Right>
@@ -374,23 +331,25 @@ const ModalRight = ({
           )}
         </SectionBox>
       </Section>
-      <Section>
-        <SectionTitle>Related Work</SectionTitle>
-        {showEpicSelector && (
+
+      {showEpicSelector && (
+        <Section>
+          <SectionTitle>Epic Selection</SectionTitle>
           <SectionBox>
             <label style={{ display: "block", marginBottom: "4px" }}>
-              Epic:
+              Epic <span style={{ color: "#ff5252" }}>*</span>
             </label>
             {editEpicId || !epicId ? (
               <StyledDropdown
                 placeholder={
-                  loadingEpics ? "Loading epics..." : "Select an epic"
+                  isLoadingEpics ? "Loading epics..." : "Select an epic"
                 }
-                options={epics}
+                options={epicOptions}
                 selectedKey={epicId}
                 onChange={handleEpicChange}
-                disabled={loadingEpics}
+                disabled={isLoadingEpics}
                 onDismiss={() => setEditEpicId(false)}
+                required
               />
             ) : (
               <span
@@ -401,22 +360,25 @@ const ModalRight = ({
               </span>
             )}
           </SectionBox>
-        )}
+        </Section>
+      )}
 
-        {showFeatureSelector && (
+      {showFeatureSelector && (
+        <Section>
+          <SectionTitle>Feature Selection</SectionTitle>
           <SectionBox>
             <label style={{ display: "block", marginBottom: "4px" }}>
-              Feature:
+              Feature
             </label>
             {editFeatureId || !featureId ? (
               <StyledDropdown
                 placeholder={
-                  loadingFeatures ? "Loading features..." : "Select a feature"
+                  isLoadingFeatures ? "Loading features..." : "Select a feature"
                 }
-                options={features}
+                options={featureOptions}
                 selectedKey={featureId}
                 onChange={handleFeatureChange}
-                disabled={loadingFeatures}
+                disabled={isLoadingFeatures}
                 onDismiss={() => setEditFeatureId(false)}
               />
             ) : (
@@ -428,8 +390,8 @@ const ModalRight = ({
               </span>
             )}
           </SectionBox>
-        )}
-      </Section>
+        </Section>
+      )}
     </Right>
   );
 };

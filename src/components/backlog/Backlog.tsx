@@ -38,7 +38,8 @@ interface BacklogItem {
   state: string;
   priority: string;
   assignedTo?: string;
-  parentId?: number; // ID of parent item for hierarchy
+  epicId?: number; // ID of parent Epic
+  featureId?: number; // ID of parent Feature
   tags?: string[];
   description?: string;
   estimate?: number;
@@ -306,28 +307,39 @@ const getTypeColor = (type: WorkItemType) => {
   }
 };
 
-// Update the buildItemTree function to use the explicit type
+// Update the buildItemTree function to handle the new hierarchy
 const buildItemTree = (items: BacklogItem[]): BacklogItemWithChildren[] => {
   const itemMap = new Map<number, BacklogItemWithChildren>();
+  const epicItems: BacklogItemWithChildren[] = [];
 
   // First, create all items with empty children arrays
   items.forEach((item) => {
     itemMap.set(item.id, { ...item, children: [] });
   });
 
-  // Then, populate the children arrays
-  const rootItems: BacklogItemWithChildren[] = [];
-
+  // Then, organize items into the hierarchy
   items.forEach((item) => {
-    if (item.parentId && itemMap.has(item.parentId)) {
-      itemMap.get(item.parentId)?.children.push(itemMap.get(item.id)!);
-    } else {
-      // No parent or parent doesn't exist, so it's a root item
-      rootItems.push(itemMap.get(item.id)!);
+    const currentItem = itemMap.get(item.id)!;
+
+    if (item.type === "Epic") {
+      epicItems.push(currentItem);
+    } else if (item.type === "Feature" && item.epicId) {
+      const epic = itemMap.get(item.epicId);
+      if (epic) {
+        epic.children.push(currentItem);
+      }
+    } else if (
+      (item.type === "Task" || item.type === "Bug") &&
+      item.featureId
+    ) {
+      const feature = itemMap.get(item.featureId);
+      if (feature) {
+        feature.children.push(currentItem);
+      }
     }
   });
 
-  return rootItems;
+  return epicItems;
 };
 
 // Main backlog component
@@ -351,103 +363,67 @@ const Backlog: React.FC = () => {
   const [backlogItems, setBacklogItems] = useState<BacklogItem[]>([
     {
       id: 1,
-      title: "User Authentication System",
+      title: "Epic 1",
       type: "Epic",
       state: "In Progress",
-      priority: "Critical",
-      tags: ["Release 1", "Security"],
+      priority: "High",
     },
     {
       id: 2,
-      title: "User Registration Flow",
+      title: "Feature 1",
       type: "Feature",
-      state: "In Progress",
-      priority: "High",
-      parentId: 1,
-      assignedTo: "Onur Canogul",
+      state: "To Do",
+      priority: "Medium",
+      epicId: 1,
     },
     {
       id: 3,
-      title: "Login & Password Reset",
-      type: "Feature",
+      title: "PBI 1",
+      type: "Task",
       state: "To Do",
-      priority: "High",
-      parentId: 1,
-      tags: ["UI", "Sprint 2"],
+      priority: "Low",
+      featureId: 2,
     },
     {
       id: 4,
-      title: "Database Schema Setup",
-      type: "Task",
-      state: "Done",
-      priority: "High",
-      parentId: 2,
-      assignedTo: "Onur Canogul",
+      title: "Bug 1",
+      type: "Bug",
+      state: "To Do",
+      priority: "Low",
+      featureId: 2,
     },
     {
       id: 5,
-      title: "User Profile Component",
-      type: "Task",
-      state: "In Progress",
+      title: "Feature 2",
+      type: "Feature",
+      state: "To Do",
       priority: "Medium",
-      parentId: 2,
+      epicId: 1,
     },
     {
       id: 6,
-      title: "Registration Validation Bug",
-      type: "Bug",
+      title: "PBI 2",
+      type: "Task",
       state: "To Do",
-      priority: "High",
-      parentId: 2,
-      assignedTo: "Onur Canogul",
+      priority: "Low",
+      featureId: 5,
     },
-    {
-      id: 7,
-      title: "Frontend Dashboard",
-      type: "Epic",
-      state: "To Do",
-      priority: "Medium",
-      tags: ["UI", "Release 1"],
-    },
+    { id: 7, title: "Epic 2", type: "Epic", state: "To Do", priority: "High" },
     {
       id: 8,
-      title: "Data Visualization Components",
+      title: "Feature 3",
       type: "Feature",
       state: "To Do",
       priority: "Medium",
-      parentId: 7,
+      epicId: 7,
     },
     {
       id: 9,
-      title: "User Activity Feed",
-      type: "Feature",
-      state: "To Do",
-      priority: "Low",
-      parentId: 7,
-      tags: ["UI", "Sprint 3"],
-    },
-    {
-      id: 10,
-      title: "Chart Library Integration",
-      type: "Task",
-      state: "To Do",
-      priority: "Medium",
-      parentId: 8,
-    },
-    {
-      id: 11,
-      title: "Activity Filter Component",
+      title: "PBI 3",
       type: "Task",
       state: "To Do",
       priority: "Low",
-      parentId: 9,
-    },
-    {
-      id: 12,
-      title: "API Integration System",
-      type: "Epic",
-      state: "To Do",
-      priority: "High",
+      featureId: 8,
     },
   ]);
 
@@ -471,7 +447,7 @@ const Backlog: React.FC = () => {
   // Build tree for filtered items
   const itemTree = buildItemTree(filteredItems);
 
-  // Update the renderItems function to use the correct type
+  // Update the renderItems function to handle the new hierarchy
   const renderItems = (items: BacklogItemWithChildren[], level = 0) => {
     return items.map((item) => {
       const hasChildren = item.children && item.children.length > 0;

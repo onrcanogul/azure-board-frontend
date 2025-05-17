@@ -139,11 +139,6 @@ const TeamSelectionPage = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-
-        // Fetch project details
-        const projectData = await projectService.getById(projectId);
-        setProject(projectData);
-
         // Fetch teams for this project
         const teamsData = await teamService.getByProject(projectId);
         setTeams(teamsData);
@@ -162,9 +157,10 @@ const TeamSelectionPage = () => {
     fetchData();
   }, [projectId, navigate]);
 
-  const handleTeamClick = (teamId: string) => {
-    // Store selected team in local storage or context
-    localStorage.setItem("selectedTeamId", teamId);
+  const handleTeamClick = (team: Team) => {
+    // Store selected team in local storage
+    localStorage.setItem("selectedTeamId", team.id);
+    localStorage.setItem("selectedTeamName", team.name);
     localStorage.setItem("selectedProjectId", projectId || "");
 
     // Navigate to the boards page
@@ -252,7 +248,7 @@ const TeamSelectionPage = () => {
       ) : (
         <TeamsGrid>
           {teams.map((team) => (
-            <TeamCard key={team.id} onClick={() => handleTeamClick(team.id)}>
+            <TeamCard key={team.id} onClick={() => handleTeamClick(team)}>
               <TeamTitle>{team.name}</TeamTitle>
               <TeamDescription>
                 {team.description || "Bu takım için açıklama bulunmamaktadır."}

@@ -166,6 +166,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => {
 
         const projectId = localStorage.getItem("selectedProjectId");
         const teamId = localStorage.getItem("selectedTeamId");
+        const teamName = localStorage.getItem("selectedTeamName");
 
         if (projectId) {
           try {
@@ -173,22 +174,22 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => {
             const projectData = await projectService.getById(projectId);
             setProject(projectData);
 
-            if (teamId) {
-              try {
-                const teamService = new TeamService();
-                const teamData = await teamService.getById(teamId);
-                setTeam(teamData);
-              } catch (teamErr) {
-                console.error("Takım verisi yüklenirken hata oluştu:", teamErr);
-                // Takım bulunamadıysa localStorage'dan da silelim
-                localStorage.removeItem("selectedTeamId");
-              }
+            if (teamId && teamName) {
+              setTeam({
+                id: teamId,
+                name: teamName,
+                description: "",
+                createdDate: new Date(),
+                updatedDate: new Date(),
+                projectId: projectId,
+                isDeleted: false,
+              });
             }
           } catch (projectErr) {
             console.error("Proje verisi yüklenirken hata oluştu:", projectErr);
-            // Proje bulunamadıysa localStorage'dan da silelim
             localStorage.removeItem("selectedProjectId");
             localStorage.removeItem("selectedTeamId");
+            localStorage.removeItem("selectedTeamName");
           }
         }
       } catch (err) {
@@ -199,7 +200,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => {
     };
 
     loadProjectAndTeam();
-  }, [location.pathname]); // Location değiştiğinde yeniden kontrol et
+  }, [location.pathname]);
 
   const handleProjectClick = () => {
     navigate("/projects");

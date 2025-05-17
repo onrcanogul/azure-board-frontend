@@ -23,9 +23,9 @@ export class FeatureService {
     }
   }
 
-  async getByArea(areaId: string): Promise<Feature[]> {
+  async getByTeam(teamId: string): Promise<Feature[]> {
     try {
-      const response = await axios.get(`${this.baseUrl}/area/${areaId}`);
+      const response = await axios.get(`${this.baseUrl}/team/${teamId}`);
       return response.data.data;
     } catch (error) {
       throw this.handleError(error);
